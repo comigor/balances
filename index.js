@@ -4,20 +4,6 @@ const _ = require('lodash');
 const he = require('he');
 
 const login = 'xxxxxx-x';
-const headersLogin = {
-  'Pragma': 'no-cache',
-  'Origin': 'https://internetbanking.intermedium.com.br',
-  'Accept-Encoding': 'gzip, deflate, br',
-  'Accept-Language': 'en-US,en;q=0.8',
-  'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.2883.95 Safari/537.36',
-  'Content-type': 'application/x-www-form-urlencoded;charset=UTF-8',
-  'Accept': '*/*',
-  'Faces-Request': 'partial/ajax',
-  'Cache-Control': 'no-cache',
-  'Referer': 'https://internetbanking.intermedium.com.br/login.jsf',
-  'Connection': 'keep-alive',
-  'DNT': '1',
-};
 let viewstate = '';
 let idSelect = '';
 let html = '';
@@ -44,7 +30,6 @@ function typeCharacter(keyboardCode) {
   const options2 = {
     method: 'POST',
     uri: 'https://internetbanking.intermedium.com.br/login.jsf',
-    headers: headersLogin,
     form: form,
     jar: true,
     resolveWithFullResponse: true
@@ -56,17 +41,6 @@ function typeCharacter(keyboardCode) {
 const options1 = {
   method: 'GET',
   uri: 'https://internetbanking.intermedium.com.br/login.jsf',
-  headers: {
-    'Pragma': 'no-cache',
-    'DNT': '1',
-    'Accept-Encoding': 'gzip, deflate, sdch, br',
-    'Accept-Language': 'en-US,en;q=0.8',
-    'Upgrade-Insecure-Requests': '1',
-    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.2883.95 Safari/537.36',
-    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-    'Cache-Control': 'no-cache',
-    'Connection': 'keep-alive'
-  },
   jar: true,
   resolveWithFullResponse: true
 };
@@ -87,20 +61,6 @@ rp(options1).then(response => {
   const options2 = {
     method: 'POST',
     uri: 'https://internetbanking.intermedium.com.br/login.jsf',
-    headers: {
-      'Pragma': 'no-cache',
-      'Origin': 'https://internetbanking.intermedium.com.br',
-      'Accept-Encoding': 'gzip, deflate, br',
-      'Accept-Language': 'en-US,en;q=0.8',
-      'Upgrade-Insecure-Requests': '1',
-      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.2883.95 Safari/537.36',
-      'Content-Type': 'application/x-www-form-urlencoded',
-      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-      'Cache-Control': 'no-cache',
-      'Referer': 'https://internetbanking.intermedium.com.br/login.jsf',
-      'Connection': 'keep-alive',
-      'DNT': '1'
-    },
     form: form,
     jar: true,
     resolveWithFullResponse: true
@@ -127,7 +87,6 @@ rp(options1).then(response => {
   const options2 = {
     method: 'POST',
     uri: 'https://internetbanking.intermedium.com.br/login.jsf',
-    headers: headersLogin,
     form: form,
     jar: true,
     resolveWithFullResponse: true
@@ -159,18 +118,6 @@ rp(options1).then(response => {
     const options1 = {
       method: 'GET',
       uri: 'https://internetbanking.intermedium.com.br/comum/home.jsf',
-      headers: {
-        'Pragma': 'no-cache',
-        'DNT': '1',
-        'Accept-Encoding': 'gzip, deflate, sdch, br',
-        'Accept-Language': 'en-US,en;q=0.8',
-        'Upgrade-Insecure-Requests': '1',
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.2883.95 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-        'Cache-Control': 'no-cache',
-        'Referer': 'https://internetbanking.intermedium.com.br/login.jsf',
-        'Connection': 'keep-alive',
-      },
       jar: true,
       resolveWithFullResponse: true
     };
@@ -195,20 +142,6 @@ rp(options1).then(response => {
     const options2 = {
       method: 'POST',
       uri: 'https://internetbanking.intermedium.com.br/comum/home.jsf',
-      headers: {
-        'Pragma': 'no-cache',
-        'Origin': 'https://internetbanking.intermedium.com.br',
-        'Accept-Encoding': 'gzip, deflate, br',
-        'Accept-Language': 'en-US,en;q=0.8',
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.2883.95 Safari/537.36',
-        'Content-type': 'application/x-www-form-urlencoded;charset=UTF-8',
-        'Accept': '*/*',
-        'Faces-Request': 'partial/ajax',
-        'Cache-Control': 'no-cache',
-        'Referer': 'https://internetbanking.intermedium.com.br/comum/home.jsf',
-        'Connection': 'keep-alive',
-        'DNT': '1'
-      },
       form: form,
       jar: true,
       resolveWithFullResponse: true
@@ -233,20 +166,6 @@ rp(options1).then(response => {
     const options2 = {
       method: 'POST',
       uri: 'https://internetbanking.intermedium.com.br/comum/home.jsf',
-      headers: {
-        'Pragma': 'no-cache',
-        'Origin': 'https://internetbanking.intermedium.com.br',
-        'Accept-Encoding': 'gzip, deflate, br',
-        'Accept-Language': 'en-US,en;q=0.8',
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.2883.95 Safari/537.36',
-        'Content-type': 'application/x-www-form-urlencoded;charset=UTF-8',
-        'Accept': '*/*',
-        'Faces-Request': 'partial/ajax',
-        'Cache-Control': 'no-cache',
-        'Referer': 'https://internetbanking.intermedium.com.br/comum/home.jsf',
-        'Connection': 'keep-alive',
-        'DNT': '1'
-      },
       form: form,
       jar: true,
       resolveWithFullResponse: true
