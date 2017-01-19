@@ -1,5 +1,5 @@
 {
-  "name": "intermedium",
+  "name": "balances",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -11,8 +11,11 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "docopt": "^0.6.2",
     "he": "^1.1.0",
     "lodash": "^4.17.4",
+    "moment": "^2.17.1",
+    "nconf": "^0.8.4",
     "request": "^2.79.0",
     "request-promise": "^4.1.1"
   }
