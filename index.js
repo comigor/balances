@@ -4,16 +4,22 @@ const _ = require('lodash/fp');
 const he = require('he');
 
 const login = 'xxxxxx-x';
+const password = 'xxx';
 let viewstate = '';
 let idSelect = '';
-let html = '';
 let virtualKeyboard = {};
-let idSubmitPassword = {};
-let passwordSubmitted = false;
+let idSubmitPassword = '';
 let contaButton = '';
 let investimentosButton = '';
 
-const typeCharacter = function(keyboardCode) {
+const serialPromise = (funcs) => {
+  return funcs.reduce((promise, func) => {
+    return promise.then(func);
+  }, Promise.resolve())
+}
+
+const typeCharacter = (char) => {
+  const keyboardCode = virtualKeyboard[char];
   let form = {
     'frmLogin': 'frmLogin',
     'javax.faces.ViewState': viewstate,
@@ -27,7 +33,7 @@ const typeCharacter = function(keyboardCode) {
   };
   form[idSelect] = 'CLIENTE_RENDA_FIXA';
 
-  const options2 = {
+  const options = {
     method: 'POST',
     uri: 'https://internetbanking.intermedium.com.br/login.jsf',
     form: form,
@@ -35,17 +41,17 @@ const typeCharacter = function(keyboardCode) {
     resolveWithFullResponse: true
   };
 
-  return rp(options2);
+  return rp(options);
 }
 
-const populateVirtualKeyboard = function(body) {
+const populateVirtualKeyboard = (body) => {
   return _(body.match(/<input id="([^"]+)"[^>]*class="btsResgate"/g))
     .map((input) => [he.decode(input.match(/value="([^"]+)"/)[1]), input.match(/id="([^"]+)"/)[1]])
     .fromPairs()
     .value();
 }
 
-const fetchLoginPage = function() {
+const fetchLoginPage = () => {
   const options = {
     method: 'GET',
     uri: 'https://internetbanking.intermedium.com.br/login.jsf',
@@ -55,7 +61,7 @@ const fetchLoginPage = function() {
   return rp(options);
 }
 
-const typeLogin = function(response) {
+const typeLogin = (response) => {
   viewstate = response.body.match(/name="javax.faces.ViewState"[^>]*value="([^"]+)"/)[1];
   idSelect = response.body.match(/<select id="([^"]+)"/)[1];
   const idSubmit = response.body.match(/<input type="submit" name="([^"]+)"/)[1];
@@ -79,7 +85,7 @@ const typeLogin = function(response) {
   return rp(options);
 }
 
-const clickName = function(response) {
+const clickName = (response) => {
   viewstate = response.body.match(/name="javax.faces.ViewState"[^>]*value="([^"]+)"/)[1];
   const idName = response.body.match(/<a id="([^"]+)"[^>]*panelGeral/)[1];
 
@@ -96,7 +102,7 @@ const clickName = function(response) {
   };
   form[idSelect] = 'CLIENTE_RENDA_FIXA';
 
-  const options2 = {
+  const options = {
     method: 'POST',
     uri: 'https://internetbanking.intermedium.com.br/login.jsf',
     form: form,
@@ -104,31 +110,29 @@ const clickName = function(response) {
     resolveWithFullResponse: true
   };
 
-  return rp(options2);
+  return rp(options);
 }
 
-const parseVirtualKeyboard1 = function(response) {
-  idSubmitPassword = response.body.match(/<input id="([^"]+)" type="submit"[^>]*value="Confirmar"/)[1];
+const parseVirtualKeyboard1 = (response) => {
+  virtualKeyboard = {'submit': response.body.match(/<input id="([^"]+)" type="submit"[^>]*value="Confirmar"/)[1]};
   virtualKeyboard = _.extend(virtualKeyboard, populateVirtualKeyboard(response.body));
-  return typeCharacter(virtualKeyboard['!?.']);
+  return typeCharacter('!?.');
 }
 
-const parseVirtualKeyboard2 = function(response) {
+const parseVirtualKeyboard2 = (response) => {
   virtualKeyboard = _.extend(virtualKeyboard, populateVirtualKeyboard(response.body));
-  return typeCharacter(virtualKeyboard['ABC']);
+  return typeCharacter('ABC');
 }
 
-const typePassword = function(response) {
-  return typeCharacter(virtualKeyboard['x'])
-    .then(() => typeCharacter(virtualKeyboard['x']))
-    .then(() => typeCharacter(virtualKeyboard['x']));
+const typePassword = (response) => {
+  return serialPromise(Array.from(password).map(c => () => typeCharacter(c)));
 }
 
-const submitLogin = function(response) {
-  return typeCharacter(idSubmitPassword);
+const submitLogin = (response) => {
+  return typeCharacter('submit');
 }
 
-const redirectToConta = function(response) {
+const redirectToConta = (response) => {
   const options = {
     method: 'GET',
     uri: 'https://internetbanking.intermedium.com.br/comum/home.jsf',
@@ -138,7 +142,7 @@ const redirectToConta = function(response) {
   return rp(options);
 }
 
-const parseContaCorrente = function(response) {
+const parseContaCorrente = (response) => {
   viewstate = response.body.match(/name="javax.faces.ViewState"[^>]*value="([^"]+)"/)[1];
   contaButton = response.body.match(/SALDO C\/C<\/b><a id="([^"]+)"[^>]*frmSaldos/)[1];
 
@@ -153,7 +157,7 @@ const parseContaCorrente = function(response) {
     'javax.faces.partial.ajax': 'true'
   };
 
-  const options2 = {
+  const options = {
     method: 'POST',
     uri: 'https://internetbanking.intermedium.com.br/comum/home.jsf',
     form: form,
@@ -161,10 +165,10 @@ const parseContaCorrente = function(response) {
     resolveWithFullResponse: true
   };
 
-  return rp(options2);
+  return rp(options);
 }
 
-const parseInvestimentos = function(response) {
+const parseInvestimentos = (response) => {
   investimentosButton = response.body.match(/INVESTIMENTOS<\/b><a id="([^"]+)"[^>]*frmSaldos/)[1];
 
   let form = {
@@ -178,7 +182,7 @@ const parseInvestimentos = function(response) {
     'javax.faces.partial.ajax': 'true'
   };
 
-  const options2 = {
+  const options = {
     method: 'POST',
     uri: 'https://internetbanking.intermedium.com.br/comum/home.jsf',
     form: form,
@@ -186,10 +190,10 @@ const parseInvestimentos = function(response) {
     resolveWithFullResponse: true
   };
 
-  return rp(options2);
+  return rp(options);
 }
 
-const printResult = function(response) {
+const printResult = (response) => {
   const saldoCC = parseFloat(response.body.match(/<span class="spanValores">[^\/]*R\$ ([0-9,\.]+)<\/span>/)[1].replace('.', '').replace(',', '.'));
   const saldoInvestimentos = parseFloat(response.body.match(/totalResultados">R\$ ([0-9,\.]+)/)[1].replace('.', '').replace(',', '.'));
   console.log('Total balance: R$ ' + (saldoCC + saldoInvestimentos));
