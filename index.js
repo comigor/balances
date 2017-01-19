@@ -9,8 +9,8 @@ let viewstate = '';
 let idSelect = '';
 let virtualKeyboard = {};
 let idSubmitPassword = '';
-let contaButton = '';
-let investimentosButton = '';
+let checkingAccountButton = '';
+let savingsAccountButton = '';
 
 const serialPromise = (funcs) => {
   return funcs.reduce((promise, func) => {
@@ -132,7 +132,7 @@ const submitLogin = (response) => {
   return typeCharacter('submit');
 }
 
-const redirectToConta = (response) => {
+const redirectToHome = (response) => {
   const options = {
     method: 'GET',
     uri: 'https://internetbanking.intermedium.com.br/comum/home.jsf',
@@ -142,16 +142,16 @@ const redirectToConta = (response) => {
   return rp(options);
 }
 
-const parseContaCorrente = (response) => {
+const parseCheckingAccount = (response) => {
   viewstate = response.body.match(/name="javax.faces.ViewState"[^>]*value="([^"]+)"/)[1];
-  contaButton = response.body.match(/SALDO C\/C<\/b><a id="([^"]+)"[^>]*frmSaldos/)[1];
+  checkingAccountButton = response.body.match(/SALDO C\/C<\/b><a id="([^"]+)"[^>]*frmSaldos/)[1];
 
   let form = {
     'frmSaldos': 'frmSaldos',
     'javax.faces.ViewState': viewstate,
-    'javax.faces.source': contaButton,
+    'javax.faces.source': checkingAccountButton,
     'javax.faces.partial.event': 'click',
-    'javax.faces.partial.execute': contaButton + ' ' + contaButton,
+    'javax.faces.partial.execute': checkingAccountButton + ' ' + checkingAccountButton,
     'javax.faces.partial.render': 'frmSaldos',
     'javax.faces.behavior.event': 'action',
     'javax.faces.partial.ajax': 'true'
@@ -168,15 +168,15 @@ const parseContaCorrente = (response) => {
   return rp(options);
 }
 
-const parseInvestimentos = (response) => {
-  investimentosButton = response.body.match(/INVESTIMENTOS<\/b><a id="([^"]+)"[^>]*frmSaldos/)[1];
+const parseSavingsAccount = (response) => {
+  savingsAccountButton = response.body.match(/INVESTIMENTOS<\/b><a id="([^"]+)"[^>]*frmSaldos/)[1];
 
   let form = {
     'frmSaldos': 'frmSaldos',
     'javax.faces.ViewState': viewstate,
-    'javax.faces.source': investimentosButton,
+    'javax.faces.source': savingsAccountButton,
     'javax.faces.partial.event': 'click',
-    'javax.faces.partial.execute': investimentosButton + ' ' + investimentosButton,
+    'javax.faces.partial.execute': savingsAccountButton + ' ' + savingsAccountButton,
     'javax.faces.partial.render': 'frmSaldos',
     'javax.faces.behavior.event': 'action',
     'javax.faces.partial.ajax': 'true'
@@ -194,9 +194,10 @@ const parseInvestimentos = (response) => {
 }
 
 const printResult = (response) => {
-  const saldoCC = parseFloat(response.body.match(/<span class="spanValores">[^\/]*R\$ ([0-9,\.]+)<\/span>/)[1].replace('.', '').replace(',', '.'));
-  const saldoInvestimentos = parseFloat(response.body.match(/totalResultados">R\$ ([0-9,\.]+)/)[1].replace('.', '').replace(',', '.'));
-  console.log('Total balance: R$ ' + (saldoCC + saldoInvestimentos));
+  const checkingAccountBalance = parseFloat(response.body.match(/<span class="spanValores">[^\/]*R\$ ([0-9,\.]+)<\/span>/)[1].replace('.', '').replace(',', '.'));
+  const savingsAccountBalance = parseFloat(response.body.match(/totalResultados">R\$ ([0-9,\.]+)/)[1].replace('.', '').replace(',', '.'));
+  console.log('Checking account balance: R$ ' + checkingAccountBalance);
+  console.log('Savings account balance: R$ ' + savingsAccountBalance);
 }
 
 fetchLoginPage()
@@ -206,7 +207,7 @@ fetchLoginPage()
   .then(parseVirtualKeyboard2)
   .then(typePassword)
   .then(submitLogin)
-  .then(redirectToConta)
-  .then(parseContaCorrente)
-  .then(parseInvestimentos)
+  .then(redirectToHome)
+  .then(parseCheckingAccount)
+  .then(parseSavingsAccount)
   .then(printResult);
