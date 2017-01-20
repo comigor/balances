@@ -43,6 +43,9 @@ const authorize = () => {
 }
 
 const checkLogin = () => {
+  if (!nconf.get('easynvest:auth:token'))
+    throw new Error('Missing token');
+
   const options = {
     method: 'GET',
     uri: 'https://api.app.easynvest.com.br/v2/users/me/accounts/PRIVATE',
@@ -103,16 +106,13 @@ const printHeader = () => {
 module.exports = {
   authorize: authorize,
   balances: () => {
-    if (!nconf.get('easynvest:auth:token')) {
-      authorize();
-    } else {
-      checkLogin()
-        .catch(authorize)
-        .then(printHeader)
-        .then(checkingBalance)
-        .then(console.log)
-        .then(savingsBalance)
-        .then(console.log);
-    }
+    Promise.resolve()
+      .then(checkLogin)
+      .catch(authorize)
+      .then(printHeader)
+      .then(checkingBalance)
+      .then(console.log)
+      .then(savingsBalance)
+      .then(console.log);
   }
 }

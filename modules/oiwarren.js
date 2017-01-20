@@ -42,6 +42,9 @@ const authorize = () => {
 }
 
 const checkLogin = () => {
+  if (!nconf.get('oiwarren:auth:accessToken'))
+    throw new Error('Missing token');
+
   const options = {
     method: 'GET',
     uri: 'https://api.oiwarren.com/api/v2/account/me',
@@ -81,14 +84,11 @@ const printHeader = () => {
 module.exports = {
   authorize: authorize,
   balances: () => {
-    if (!nconf.get('oiwarren:auth:accessToken')) {
-      authorize();
-    } else {
-      checkLogin()
-        .catch(authorize)
-        .then(printHeader)
-        .then(savingsBalance)
-        .then(console.log);
-    }
+    Promise.resolve()
+      .then(checkLogin)
+      .catch(authorize)
+      .then(printHeader)
+      .then(savingsBalance)
+      .then(console.log);
   }
 }
