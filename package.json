@@ -1,19 +1,19 @@
 {
   "name": "balances",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "version": "0.1.1",
+  "description": "Your balances on banks and brokers",
+  "main": "./index.js",
   "bin": "./index.js",
   "scripts": {
-    "// see https://github.com/request/request/issues/2091": "",
-    "start": "nvm run index.js",
+    "start": "node ./index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Igor Borges",
+  "repository": "github:Igor1201/balances",
   "engines": {
     "node": "5.5"
   },
-  "license": "MIT",
+  "license": "GPLv3",
   "dependencies": {
     "docopt": "^0.6.2",
     "he": "^1.1.0",

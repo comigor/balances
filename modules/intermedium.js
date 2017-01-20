@@ -6,6 +6,11 @@ const he = require('he');
 
 nconf.env('_').file({file: process.env.HOME + '/.balances.conf'});
 
+//
+// we use node v5.5 because of submitLogin() step
+// see https://github.com/request/request/issues/2091
+//
+
 const login = nconf.get('intermedium:login');
 const password = nconf.get('intermedium:password');
 let viewstate = '';
