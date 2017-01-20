@@ -26,7 +26,7 @@ const modules = require('require-all')({
 const doc = `Balances.
 
 Usage:
-  balances ${_.keys(modules).join('|')} [auth]
+  balances (${_.keys(modules).join('|')}) [auth]
   balances all
 `
 const opts = docopt.docopt(doc);

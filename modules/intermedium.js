@@ -228,6 +228,7 @@ Savings account balance: R$ ${savingsAccountBalance}`;
 }
 
 module.exports = {
+  authorize: () => undefined,
   balances: () => {
     Promise.resolve()
       .then(fetchLoginPage)
