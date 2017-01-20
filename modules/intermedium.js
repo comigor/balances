@@ -200,18 +200,14 @@ const parseSavingsAccount = (response) => {
 const balances = (response) => {
   const checkingAccountBalance = parseFloat(response.body.match(/<span class="spanValores">[^\/]*R\$ ([0-9,\.]+)<\/span>/)[1].replace('.', '').replace(',', '.')).toFixed(2);
   const savingsAccountBalance = parseFloat(response.body.match(/totalResultados">R\$ ([0-9,\.]+)/)[1].replace('.', '').replace(',', '.')).toFixed(2);
-  return `Checking account balance: R$ ${checkingAccountBalance}
+  return `-- Intermedium --
+Checking account balance: R$ ${checkingAccountBalance}
 Savings account balance: R$ ${savingsAccountBalance}`;
-}
-
-const printHeader = () => {
-  console.log('-- Intermedium --');
-  return Promise.resolve();
 }
 
 module.exports = {
   balances: () => {
-    printHeader()
+    Promise.resolve()
       .then(fetchLoginPage)
       .then(typeLogin)
       .then(clickName)

@@ -21,6 +21,7 @@
     "moment": "^2.17.1",
     "nconf": "^0.8.4",
     "request": "^2.79.0",
-    "request-promise": "^4.1.1"
+    "request-promise": "^4.1.1",
+    "require-all": "^2.1.0"
   }
 }

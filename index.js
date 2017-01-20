@@ -1,29 +1,23 @@
 #! /usr/bin/env node
 'use strict';
+const _ = require('lodash');
 const docopt = require('docopt');
-const intermedium = require('./intermedium');
-const oiwarren = require('./oiwarren');
-const easynvest = require('./easynvest');
+const modules = require('require-all')({
+  dirname: __dirname + '/modules'
+});
 
 const doc = `Balances.
 
 Usage:
-  balances easynvest [auth]
-  balances oiwarren [auth]
-  balances intermedium
+  balances ${_.keys(modules).join('|')} [auth]
   balances all
 `
 const opts = docopt.docopt(doc);
 
-if (opts.intermedium) {
-  intermedium.balances();
-} else if (opts.oiwarren) {
-  opts.auth ? oiwarren.authorize() : oiwarren.balances();
-} else if (opts.easynvest) {
-  opts.auth ? easynvest.authorize() : easynvest.balances();
+const selected = _.keys(modules).filter(m => opts[m])[0];
+if (selected) {
+  opts.auth ?
+    modules[selected].authorize() : modules[selected].balances();
 } else if (opts.all) {
-  Promise.resolve()
-    .then(intermedium.balances)
-    .then(oiwarren.balances)
-    .then(easynvest.balances);
+  Promise.all(_.keys(modules).map(m => modules[m].balances()));
 }
