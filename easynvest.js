@@ -79,6 +79,10 @@ const checkingBalance = () => {
     });
 }
 
+const printHeader = () => {
+  console.log('-- Easynvest --');
+}
+
 module.exports = {
   authorize: authorize,
   balances: () => {
@@ -87,6 +91,7 @@ module.exports = {
     } else {
       checkLogin()
         .catch(authorize)
+        .then(printHeader)
         .then(checkingBalance)
         .then(console.log)
         .then(savingsBalance)

@@ -197,16 +197,22 @@ const parseSavingsAccount = (response) => {
   return rp(options);
 }
 
-const printResult = (response) => {
+const balances = (response) => {
   const checkingAccountBalance = parseFloat(response.body.match(/<span class="spanValores">[^\/]*R\$ ([0-9,\.]+)<\/span>/)[1].replace('.', '').replace(',', '.')).toFixed(2);
   const savingsAccountBalance = parseFloat(response.body.match(/totalResultados">R\$ ([0-9,\.]+)/)[1].replace('.', '').replace(',', '.')).toFixed(2);
   return `Checking account balance: R$ ${checkingAccountBalance}
 Savings account balance: R$ ${savingsAccountBalance}`;
 }
 
+const printHeader = () => {
+  console.log('-- Intermedium --');
+  return Promise.resolve();
+}
+
 module.exports = {
   balances: () => {
-    fetchLoginPage()
+    printHeader()
+      .then(fetchLoginPage)
       .then(typeLogin)
       .then(clickName)
       .then(parseVirtualKeyboard1)
@@ -216,7 +222,7 @@ module.exports = {
       .then(redirectToHome)
       .then(parseCheckingAccount)
       .then(parseSavingsAccount)
-      .then(printResult)
+      .then(balances)
       .then(console.log);
   }
 }
