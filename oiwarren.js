@@ -26,15 +26,11 @@ const authorize = () => {
 
 const checkLogin = () => {
   const options = {
-    method: 'POST',
+    method: 'GET',
     uri: 'https://api.oiwarren.com/api/v2/account/me',
     headers: {
       'Content-type': 'application/json',
       'Access-Token': nconf.get('oiwarren:auth:accessToken')
-    },
-    body: {
-      email: nconf.get('oiwarren:email'),
-      password: nconf.get('oiwarren:password')
     },
     json: true,
     resolveWithFullResponse: true
@@ -67,8 +63,10 @@ module.exports = {
     if (!nconf.get('oiwarren:auth:accessToken')) {
       authorize();
     } else {
-      checkLogin().then(savingsBalance).then(console.log)
-        .catch(() => authorize().then(savingsBalance).then(console.log));
+      checkLogin()
+        .catch(authorize)
+        .then(savingsBalance)
+        .then(console.log);
     }
   }
 }
