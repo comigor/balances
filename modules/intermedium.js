@@ -21,7 +21,7 @@ const rp = require('request-promise');
 const _ = require('lodash/fp');
 const he = require('he');
 
-nconf.env('_').file({file: process.env.HOME + '/.balances.conf'});
+nconf.env('_').file({file: process.env.HOME + '/.balances.conf.json'});
 
 //
 // we use node v5.5 because of submitLogin() step

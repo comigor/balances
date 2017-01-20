@@ -19,7 +19,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 const nconf = require('nconf');
 const rp = require('request-promise');
 
-nconf.env('_').file({file: process.env.HOME + '/.balances.conf'});
+nconf.env('_').file({file: process.env.HOME + '/.balances.conf.json'});
 
 const authorize = () => {
   const options = {
