@@ -2,7 +2,7 @@
 
 Your checking and savings accounts balances on banks and brokers.
 
-It currently supports [OiWarren](https://oiwarren.com/), [Easynvest](https://www.easynvest.com.br/) and [Intermedium](https://www.intermedium.com.br/).
+It currently supports [OiWarren](https://oiwarren.com/), [Easynvest](https://www.easynvest.com.br/), [Intermedium](https://www.intermedium.com.br/) and [Monetus](https://monetus.com.br/).
 
 ## Install
 

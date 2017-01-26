@@ -1,6 +1,6 @@
 {
   "name": "balances",
-  "version": "0.1.3",
+  "version": "0.2.0",
   "description": "Your checking and savings accounts balances on banks and brokers",
   "main": "./index.js",
   "bin": "./index.js",
