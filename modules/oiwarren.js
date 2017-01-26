@@ -16,8 +16,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 'use strict';
+const __ = require('lodash');
 const nconf = require('nconf');
 const rp = require('request-promise');
+const table = require('easy-table');
 
 nconf.env('_').file({file: process.env.HOME + '/.balances.conf.json'});
 
@@ -77,6 +79,26 @@ const savingsBalance = () => {
   });
 }
 
+const savingsDetails = () => {
+  return rp({
+    method: 'GET',
+    uri: 'https://api.oiwarren.com/api/v2/portfolios/mine',
+    headers: {
+      'Access-Token': nconf.get('oiwarren:auth:accessToken')
+    },
+    json: true,
+    resolveWithFullResponse: true
+  }).then(response => {
+    const portfolios = response.body.portfolios.map(i => __.pick(i, ['name', 'totalBalance']));
+    return table.print(portfolios, {
+      totalBalance: {
+        name: 'balance',
+        printer: table.number(2)
+      }
+    }, (table) => table.total('balance').toString());
+  });
+}
+
 const printHeader = () => {
   console.log('-- OiWarren --');
 }
@@ -89,6 +111,13 @@ module.exports = {
       .catch(authorize)
       .then(printHeader)
       .then(savingsBalance)
+      .then(console.log);
+  },
+  details: () => {
+    Promise.resolve()
+      .then(checkLogin)
+      .catch(authorize)
+      .then(savingsDetails)
       .then(console.log);
   }
 }

@@ -26,15 +26,23 @@ const modules = require('require-all')({
 const doc = `Balances.
 
 Usage:
-  balances (${_.keys(modules).join('|')}) [auth]
+  balances [options] (${_.keys(modules).join('|')})
   balances all
+
+Options:
+  -a --auth     Just authenticate.
+  -d --details  Show details.
 `
 const opts = docopt.docopt(doc);
 
 const selected = _.keys(modules).filter(m => opts[m])[0];
 if (selected) {
-  opts.auth ?
-    modules[selected].authorize() : modules[selected].balances();
+  if (opts['--auth'])
+    modules[selected].authorize();
+  else if (opts['--details'])
+    modules[selected].details();
+  else
+    modules[selected].balances();
 } else if (opts.all) {
   Promise.all(_.keys(modules).map(m => modules[m].balances()));
 }
