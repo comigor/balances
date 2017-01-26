@@ -18,22 +18,21 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 'use strict';
 const _ = require('lodash');
-const docopt = require('docopt');
+const neodoc = require('neodoc');
 const modules = require('require-all')({
   dirname: __dirname + '/modules'
 });
 
-const doc = `Balances.
-
-Usage:
+const doc = `Usage:
   balances [options] (${_.keys(modules).join('|')})
   balances all
 
 Options:
-  -a --auth     Just authenticate.
-  -d --details  Show details.
+  -a, --auth     Just authenticate.
+  -d, --details  Show details.
+  -h, --help     Show this help.
 `
-const opts = docopt.docopt(doc);
+const opts = neodoc.run(doc, {optionsFirst: true, smartOptions: true});
 
 const selected = _.keys(modules).filter(m => opts[m])[0];
 if (selected) {
