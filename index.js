@@ -30,6 +30,7 @@ const doc = `Usage:
 
 Options:
   -d, --details  Show details.
+  -g <regex>     Regex to grep portfolio name. Only works with -d.
   -v, --version  Show the version.
   -h, --help     Show this help.
 `
@@ -48,7 +49,7 @@ if (selected) {
   // if (opts['--auth'])
   //   modules[selected].authorize();
   if (opts['--details'])
-    common.printDetails(selected);
+    common.printDetails(selected, opts['-g']);
   else
     common.printBalance(selected);
 }

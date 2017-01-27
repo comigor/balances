@@ -23,15 +23,6 @@ const modules = require('require-all')({
   dirname: __dirname + '/modules'
 });
 
-const printBalance = (brokers) => {
-  Promise.all(brokers.map(m => modules[m].balance()))
-    .then(__.sum)
-    .then(balance => {
-      return balance.toFixed(2);
-    })
-    .then(console.log);
-}
-
 const printProgress = (proportion) => {
   const width = 46;
   const loaded = Math.ceil(width * proportion);
@@ -46,12 +37,24 @@ const printProgress = (proportion) => {
   process.stdout.write(output);
 }
 
-const printDetails = (brokers) => {
+const printBalance = (brokers) => {
+  printProgress(0);
+  ProgressPromise.all(brokers.map(m => modules[m].balance()))
+    .progress(progress => printProgress(progress.proportion))
+    .then(__.sum)
+    .then(balance => {
+      return balance.toFixed(2);
+    })
+    .then(console.log);
+}
+
+const printDetails = (brokers, rex) => {
   printProgress(0);
   ProgressPromise.all(brokers.map(m => modules[m].details()))
     .progress(progress => printProgress(progress.proportion))
     .then(__.flatten)
     .then(p => __.orderBy(p, ['dailyLiquidity', 'date'], ['desc', 'asc']))
+    .then(portfolio => portfolio.filter(p => new RegExp(rex, 'gi').test(p.name)))
     .then(portfolio => {
       return portfolio.map(p => {
         p.date = (p.dailyLiquidity ? '-' : p.date.format('MMM/YYYY'));
