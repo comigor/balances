@@ -44,7 +44,11 @@ const printDetails = (brokers) => {
     .then(allDetails => {
       return table.print(allDetails, {
         balance: {printer: table.number(2)}
-      }, (t) => t.total('balance').toString());
+      }, (t) => t.total('balance', {
+        printer: (val, width) => {
+          return val.toFixed(2);
+        }
+      }).toString());
     })
     .then(console.log);
 }
