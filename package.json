@@ -6,7 +6,7 @@
   "bin": "./index.js",
   "scripts": {
     "start": "node ./index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "ava"
   },
   "author": "Igor Borges",
   "repository": "github:Igor1201/balances",
@@ -24,5 +24,8 @@
     "request": "^2.79.0",
     "request-promise": "^4.1.1",
     "require-all": "^2.1.0"
+  },
+  "devDependencies": {
+    "ava": "^0.17.0"
   }
 }
