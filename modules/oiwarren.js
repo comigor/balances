@@ -19,9 +19,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 const __ = require('lodash');
 const nconf = require('nconf');
 const rp = require('request-promise');
-const table = require('easy-table');
 
 nconf.env('_').file({file: process.env.HOME + '/.balances.conf.json'});
+
+const NAME = 'OiWarren';
 
 const authorize = () => {
   const options = {
@@ -64,7 +65,7 @@ const checkLogin = () => {
   });
 }
 
-const savingsBalance = () => {
+const balance = () => {
   return rp({
     method: 'GET',
     uri: 'https://api.oiwarren.com/api/v2/portfolios/mine',
@@ -74,12 +75,11 @@ const savingsBalance = () => {
     json: true,
     resolveWithFullResponse: true
   }).then(response => {
-    const totalBalance = response.body.portfolios.reduce((m, i) => m + i.totalBalance, 0);
-    return `Savings account balance: R$ ${totalBalance.toFixed(2)}`;
+    return response.body.portfolios.reduce((m, i) => m + i.totalBalance, 0);
   });
 }
 
-const savingsDetails = () => {
+const details = () => {
   return rp({
     method: 'GET',
     uri: 'https://api.oiwarren.com/api/v2/portfolios/mine',
@@ -89,35 +89,30 @@ const savingsDetails = () => {
     json: true,
     resolveWithFullResponse: true
   }).then(response => {
-    const portfolios = response.body.portfolios.map(i => __.pick(i, ['name', 'totalBalance']));
-    return table.print(portfolios, {
-      totalBalance: {
-        name: 'balance',
-        printer: table.number(2)
-      }
-    }, (table) => table.total('balance').toString());
+    return response.body.portfolios.map(p => {
+      return {
+        broker: NAME,
+        name: p.name,
+        dailyLiquidity: true,
+        balance: p.totalBalance
+      };
+    });
   });
-}
-
-const printHeader = () => {
-  console.log('-- OiWarren --');
 }
 
 module.exports = {
+  name: NAME,
   authorize: authorize,
-  balances: () => {
-    Promise.resolve()
+  balance: () => {
+    return Promise.resolve()
       .then(checkLogin)
       .catch(authorize)
-      .then(printHeader)
-      .then(savingsBalance)
-      .then(console.log);
+      .then(balance);
   },
   details: () => {
-    Promise.resolve()
+    return Promise.resolve()
       .then(checkLogin)
       .catch(authorize)
-      .then(savingsDetails)
-      .then(console.log);
+      .then(details);
   }
 }

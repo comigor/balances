@@ -28,6 +28,7 @@ nconf.env('_').file({file: process.env.HOME + '/.balances.conf.json'});
 // see https://github.com/request/request/issues/2091
 //
 
+const NAME = 'Intermedium';
 const login = nconf.get('intermedium:login');
 const password = nconf.get('intermedium:password');
 let viewstate = '';
@@ -168,6 +169,18 @@ const redirectToHome = (response) => {
   return rp(options);
 }
 
+const authorize = () => {
+  return Promise.resolve()
+    .then(fetchLoginPage)
+    .then(typeLogin)
+    .then(clickName)
+    .then(parseVirtualKeyboard1)
+    .then(parseVirtualKeyboard2)
+    .then(typePassword)
+    .then(submitLogin)
+    .then(redirectToHome);
+}
+
 const parseCheckingAccount = (response) => {
   viewstate = response.body.match(/name="javax.faces.ViewState"[^>]*value="([^"]+)"/)[1];
   checkingAccountButton = response.body.match(/SALDO C\/C<\/b><a id="([^"]+)"[^>]*frmSaldos/)[1];
@@ -219,29 +232,47 @@ const parseSavingsAccount = (response) => {
   return rp(options);
 }
 
-const balances = (response) => {
-  const checkingAccountBalance = parseFloat(response.body.match(/<span class="spanValores">[^\/]*R\$ ([0-9,\.]+)<\/span>/)[1].replace('.', '').replace(',', '.')).toFixed(2);
-  const savingsAccountBalance = parseFloat(response.body.match(/totalResultados">R\$ ([0-9,\.]+)/)[1].replace('.', '').replace(',', '.')).toFixed(2);
-  return `-- Intermedium --
-Checking account balance: R$ ${checkingAccountBalance}
-Savings account balance: R$ ${savingsAccountBalance}`;
+const balance = (response) => {
+  const checkingAccountBalance = parseFloat(response.body.match(/<span class="spanValores">[^\/]*R\$ ([0-9,\.]+)<\/span>/)[1].replace('.', '').replace(',', '.'));
+  const savingsAccountBalance = parseFloat(response.body.match(/totalResultados">R\$ ([0-9,\.]+)/)[1].replace('.', '').replace(',', '.'));
+  return checkingAccountBalance + savingsAccountBalance;
+}
+
+// TODO: parse correct details page!
+const details = (response) => {
+  const checkingAccountBalance = parseFloat(response.body.match(/<span class="spanValores">[^\/]*R\$ ([0-9,\.]+)<\/span>/)[1].replace('.', '').replace(',', '.'));
+  const savingsAccountBalance = parseFloat(response.body.match(/totalResultados">R\$ ([0-9,\.]+)/)[1].replace('.', '').replace(',', '.'));
+  const details = [
+    {
+      broker: NAME,
+      name: 'Checking account',
+      dailyLiquidity: true,
+      balance: checkingAccountBalance
+    }, {
+      broker: NAME,
+      name: 'Savings account',
+      dailyLiquidity: true,
+      balance: savingsAccountBalance
+    }
+  ];
+  return details.filter(d => d.balance > 0);
 }
 
 module.exports = {
-  authorize: () => undefined,
-  balances: () => {
-    Promise.resolve()
-      .then(fetchLoginPage)
-      .then(typeLogin)
-      .then(clickName)
-      .then(parseVirtualKeyboard1)
-      .then(parseVirtualKeyboard2)
-      .then(typePassword)
-      .then(submitLogin)
-      .then(redirectToHome)
+  name: NAME,
+  authorize: authorize,
+  balance: () => {
+    return Promise.resolve()
+      .then(authorize)
       .then(parseCheckingAccount)
       .then(parseSavingsAccount)
-      .then(balances)
-      .then(console.log);
+      .then(balance);
+  },
+  details: () => {
+    return Promise.resolve()
+      .then(authorize)
+      .then(parseCheckingAccount)
+      .then(parseSavingsAccount)
+      .then(details);
   }
 }

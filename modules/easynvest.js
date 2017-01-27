@@ -19,10 +19,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 const __ = require('lodash');
 const nconf = require('nconf');
 const rp = require('request-promise');
-const table = require('easy-table');
 const moment = require('moment');
 
 nconf.env('_').file({file: process.env.HOME + '/.balances.conf.json'});
+
+const NAME = 'Easynvest';
 
 const authorize = () => {
   const options = {
@@ -66,20 +67,6 @@ const checkLogin = () => {
   });
 }
 
-const genericBalance = (type) => {
-  return rp({
-    method: 'GET',
-    uri: `https://api.app.easynvest.com.br/v2/users/me/accounts/${type}`,
-    headers: {
-      'Authorization': 'Bearer ' + nconf.get('easynvest:auth:token')
-    },
-    json: true,
-    simple: false,
-    resolveWithFullResponse: true
-  })
-  .then(response => response.body.balance);
-}
-
 const genericDetails = (type) => {
   return rp({
     method: 'GET',
@@ -94,19 +81,18 @@ const genericDetails = (type) => {
   .then(response => response.statusCode == 200 ? response.body : undefined);
 }
 
-const savingsBalance = () => {
+const balance = () => {
   return Promise.all([
-    genericBalance('PRIVATE'),
-    genericBalance('FUTURES'),
-    genericBalance('FUNDS'),
-    genericBalance('GOVERNMENT'),
-    genericBalance('STOCKS')
-  ]).then(balances => balances
+    genericDetails('PRIVATE'),
+    genericDetails('FUTURES'),
+    genericDetails('FUNDS'),
+    genericDetails('GOVERNMENT'),
+    genericDetails('DEPOSIT'),
+    genericDetails('STOCKS')
+  ]).then(__.flatten)
+    .then(balances => balances
                         .filter(__.identity)
-                        .reduce((m, i) => m + i, 0))
-    .then(balance => {
-      return `Savings account balance: R$ ${balance.toFixed(2)}`;
-    });
+                        .reduce((m, i) => m + i.netValue, 0));
 }
 
 const details = () => {
@@ -121,48 +107,32 @@ const details = () => {
                         .filter(__.identity)
                         .flatten()
                         .orderBy(['dailyLiquidity', 'maturityDate'], ['desc', 'asc'])
-                        .map(b => { return {
-                          name: `[${b.index}] ${b.name} ${b.issuer}`,
-                          date: b.dailyLiquidity ? '-' :
-                            moment(b.maturityDate, 'YYYY-MM-DD[T]HH:mm:ssz').format('MMM/YYYY'),
-                          balance: b.netValue
-                        }})
-                        .value())
-    .then(balances => {
-      return table.print(balances, {
-        balance: {printer: table.number(2)}
-      }, (table) => table.total('balance').toString());
-    });
-}
-
-const checkingBalance = () => {
-  return genericBalance('DEPOSIT')
-    .then(balance => {
-      return `Checking account balance: R$ ${balance.toFixed(2)}`;
-    });
-}
-
-const printHeader = () => {
-  console.log('-- Easynvest --');
+                        .map(b => {
+                          return {
+                            broker: NAME,
+                            name: `${b.index} ${b.name} ${b.issuer}`,
+                            dailyLiquidity: b.dailyLiquidity,
+                            date: b.dailyLiquidity ? undefined :
+                              moment(b.maturityDate, 'YYYY-MM-DD[T]HH:mm:ssz'),
+                            balance: b.netValue
+                          };
+                        })
+                        .value());
 }
 
 module.exports = {
+  name: NAME,
   authorize: authorize,
-  balances: () => {
-    Promise.resolve()
+  balance: () => {
+    return Promise.resolve()
       .then(checkLogin)
       .catch(authorize)
-      .then(printHeader)
-      .then(checkingBalance)
-      .then(console.log)
-      .then(savingsBalance)
-      .then(console.log);
+      .then(balance);
   },
   details: () => {
-    Promise.resolve()
+    return Promise.resolve()
       .then(checkLogin)
       .catch(authorize)
-      .then(details)
-      .then(console.log);
+      .then(details);
   }
 }

@@ -18,11 +18,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 'use strict';
 const nconf = require('nconf');
 const rp = require('request-promise');
-const table = require('easy-table');
 const moment = require('moment');
 
 nconf.env('_').file({file: process.env.HOME + '/.balances.conf.json'});
 
+const NAME = 'Monetus';
 let _token = '';
 
 const getLoginToken = () => {
@@ -60,7 +60,7 @@ const login = () => {
   return rp(options);
 }
 
-const savingsBalance = () => {
+const balance = () => {
   return rp({
     method: 'GET',
     uri: 'https://app.monetus.com.br/portfolio',
@@ -70,12 +70,10 @@ const savingsBalance = () => {
   }).then(response => {
     const portfolio = JSON.parse(response.body.match(/JSON\.parse\('([^']+)'/)[1]);
     return portfolio.reduce((m, i) => m + i.value, 0);
-  }).then(balance => {
-    return `Savings account balance: R$ ${balance.toFixed(2)}`;
   });
 }
 
-const savingsDetails = () => {
+const details = () => {
   return rp({
     method: 'GET',
     uri: 'https://app.monetus.com.br/portfolio',
@@ -85,38 +83,31 @@ const savingsDetails = () => {
   }).then(response => {
     return JSON.parse(response.body.match(/JSON\.parse\('([^']+)'/)[1])
       .map(p => {
+        const date = moment(p.asset.maturity, 'YYYY-MM-DD HH:mm:ss');
         return {
+          broker: NAME,
           name: p.asset.name,
-          date: moment(p.asset.maturity, 'YYYY-MM-DD HH:mm:ss').format('MMM/YYYY'),
+          dailyLiquidity: date.isBefore(moment()),
+          date: date,
           balance: p.value
         };
       });
-  }).then(balances => {
-    return table.print(balances, {
-      balance: {printer: table.number(2)}
-    }, (table) => table.total('balance').toString());
   });
 }
 
-const printHeader = () => {
-  console.log('-- Monetus --');
-}
-
 module.exports = {
+  name: NAME,
   authorize: () => undefined,
-  balances: () => {
-    Promise.resolve()
+  balance: () => {
+    return Promise.resolve()
       .then(getLoginToken)
       .then(login)
-      .then(printHeader)
-      .then(savingsBalance)
-      .then(console.log);
+      .then(balance);
   },
   details: () => {
-    Promise.resolve()
+    return Promise.resolve()
       .then(getLoginToken)
       .then(login)
-      .then(savingsDetails)
-      .then(console.log);
+      .then(details);
   }
 }

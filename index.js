@@ -17,31 +17,33 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 'use strict';
-const _ = require('lodash');
+const common = require('./common');
+const __ = require('lodash');
 const neodoc = require('neodoc');
 const modules = require('require-all')({
   dirname: __dirname + '/modules'
 });
 
 const doc = `Usage:
-  balances [options] (${_.keys(modules).join('|')})
-  balances all
+  balances [options] (${__.keys(modules).join('|')})...
+  balances [options] all
 
 Options:
-  -a, --auth     Just authenticate.
   -d, --details  Show details.
   -h, --help     Show this help.
 `
+// -a, --auth     Just authenticate.
 const opts = neodoc.run(doc, {optionsFirst: true, smartOptions: true});
 
-const selected = _.keys(modules).filter(m => opts[m])[0];
+const selected = opts.all ?
+  __.keys(modules) :
+  __.keys(modules).filter(m => opts[m]);
+
 if (selected) {
-  if (opts['--auth'])
-    modules[selected].authorize();
-  else if (opts['--details'])
-    modules[selected].details();
+  // if (opts['--auth'])
+  //   modules[selected].authorize();
+  if (opts['--details'])
+    common.printDetails(selected);
   else
-    modules[selected].balances();
-} else if (opts.all) {
-  Promise.all(_.keys(modules).map(m => modules[m].balances()));
+    common.printBalance(selected);
 }
