@@ -30,10 +30,15 @@ const doc = `Usage:
 
 Options:
   -d, --details  Show details.
+  -v, --version  Show the version.
   -h, --help     Show this help.
 `
 // -a, --auth     Just authenticate.
-const opts = neodoc.run(doc, {optionsFirst: true, smartOptions: true});
+const opts = neodoc.run(doc, {
+  laxPlacement: true,
+  smartOptions: true,
+  versionFlags: ['-v', '--version']
+});
 
 const selected = opts.all ?
   __.keys(modules) :

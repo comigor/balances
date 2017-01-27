@@ -17,7 +17,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 'use strict';
 const __ = require('lodash');
-const table = require('easy-table');
+const Table = require('easy-table');
+const ProgressPromise = require('progress-promise');
 const modules = require('require-all')({
   dirname: __dirname + '/modules'
 });
@@ -31,8 +32,24 @@ const printBalance = (brokers) => {
     .then(console.log);
 }
 
+const printProgress = (proportion) => {
+  const width = 46;
+  const loaded = Math.ceil(width * proportion);
+  const notLoaded = width - loaded;
+
+  if (proportion == 1) {
+    process.stdout.write('\r' + __.repeat(' ', width + 2) + '\r');
+    return;
+  }
+
+  const output = '\r[' + __.repeat('-', loaded) + __.repeat(' ', notLoaded) + ']';
+  process.stdout.write(output);
+}
+
 const printDetails = (brokers) => {
-  Promise.all(brokers.map(m => modules[m].details()))
+  printProgress(0);
+  ProgressPromise.all(brokers.map(m => modules[m].details()))
+    .progress(progress => printProgress(progress.proportion))
     .then(__.flatten)
     .then(p => __.orderBy(p, ['dailyLiquidity', 'date'], ['desc', 'asc']))
     .then(portfolio => {
@@ -42,8 +59,8 @@ const printDetails = (brokers) => {
       })
     })
     .then(allDetails => {
-      return table.print(allDetails, {
-        balance: {printer: table.number(2)}
+      return Table.print(allDetails, {
+        balance: {printer: Table.number(2)}
       }, (t) => t.total('balance', {
         printer: (val, width) => {
           return val.toFixed(2);
