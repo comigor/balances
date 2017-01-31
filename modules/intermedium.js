@@ -18,8 +18,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 'use strict';
 const nconf = require('nconf');
 const rp = require('request-promise');
-const _ = require('lodash/fp');
+const __ = require('lodash/fp');
 const he = require('he');
+const moment = require('moment');
 
 nconf.env('_').file({file: process.env.HOME + '/.balances.conf.json'});
 
@@ -32,11 +33,14 @@ const NAME = 'Intermedium';
 const login = nconf.get('intermedium:login');
 const password = nconf.get('intermedium:password');
 let viewstate = '';
-let idSelect = '';
+let selectId = '';
 let virtualKeyboard = {};
-let idSubmitPassword = '';
-let checkingAccountButton = '';
-let savingsAccountButton = '';
+let checkingAccountButtonId = '';
+let savingsAccountButtonId = '';
+let viewButtonId = '';
+let checkingAccountBalance = 0;
+let savingsAccountBalance = 0;
+
 
 const serialPromise = (funcs) => {
   return funcs.reduce((promise, func) => {
@@ -57,7 +61,7 @@ const typeCharacter = (char) => {
     'javax.faces.behavior.event': 'action',
     'javax.faces.partial.ajax': 'true'
   };
-  form[idSelect] = 'CLIENTE_RENDA_FIXA';
+  form[selectId] = 'CLIENTE_RENDA_FIXA';
 
   const options = {
     method: 'POST',
@@ -71,7 +75,7 @@ const typeCharacter = (char) => {
 }
 
 const populateVirtualKeyboard = (body) => {
-  return _(body.match(/<input id="([^"]+)"[^>]*class="btsResgate"/g))
+  return __(body.match(/<input id="([^"]+)"[^>]*class="btsResgate"/g))
     .map((input) => [he.decode(input.match(/value="([^"]+)"/)[1]), input.match(/id="([^"]+)"/)[1]])
     .fromPairs()
     .value();
@@ -89,16 +93,16 @@ const fetchLoginPage = () => {
 
 const typeLogin = (response) => {
   viewstate = response.body.match(/name="javax.faces.ViewState"[^>]*value="([^"]+)"/)[1];
-  idSelect = response.body.match(/<select id="([^"]+)"/)[1];
-  const idSubmit = response.body.match(/<input type="submit" name="([^"]+)"/)[1];
+  selectId = response.body.match(/<select id="([^"]+)"/)[1];
+  const submitId = response.body.match(/<input type="submit" name="([^"]+)"/)[1];
 
   let form = {
     'frmLogin': 'frmLogin',
     'javax.faces.ViewState': viewstate,
     'login': login
   };
-  form[idSelect] = 'CLIENTE_RENDA_FIXA';
-  form[idSubmit] = 'Aguarde ...';
+  form[selectId] = 'CLIENTE_RENDA_FIXA';
+  form[submitId] = 'Aguarde ...';
 
   const options = {
     method: 'POST',
@@ -113,20 +117,20 @@ const typeLogin = (response) => {
 
 const clickName = (response) => {
   viewstate = response.body.match(/name="javax.faces.ViewState"[^>]*value="([^"]+)"/)[1];
-  const idName = response.body.match(/<a id="([^"]+)"[^>]*panelGeral/)[1];
+  const nameId = response.body.match(/<a id="([^"]+)"[^>]*panelGeral/)[1];
 
   let form = {
     'frmLogin': 'frmLogin',
     'javax.faces.ViewState': viewstate,
     'login': login,
-    'javax.faces.source': idName,
+    'javax.faces.source': nameId,
     'javax.faces.partial.event': 'click',
-    'javax.faces.partial.execute': idName + ' panelGeral',
+    'javax.faces.partial.execute': nameId + ' panelGeral',
     'javax.faces.partial.render': 'panelGeral',
     'javax.faces.behavior.event': 'action',
     'javax.faces.partial.ajax': 'true'
   };
-  form[idSelect] = 'CLIENTE_RENDA_FIXA';
+  form[selectId] = 'CLIENTE_RENDA_FIXA';
 
   const options = {
     method: 'POST',
@@ -141,12 +145,12 @@ const clickName = (response) => {
 
 const parseVirtualKeyboard1 = (response) => {
   virtualKeyboard = {'submit': response.body.match(/<input id="([^"]+)" type="submit"[^>]*value="Confirmar"/)[1]};
-  virtualKeyboard = _.extend(virtualKeyboard, populateVirtualKeyboard(response.body));
+  virtualKeyboard = __.extend(virtualKeyboard, populateVirtualKeyboard(response.body));
   return typeCharacter('!?.');
 }
 
 const parseVirtualKeyboard2 = (response) => {
-  virtualKeyboard = _.extend(virtualKeyboard, populateVirtualKeyboard(response.body));
+  virtualKeyboard = __.extend(virtualKeyboard, populateVirtualKeyboard(response.body));
   return typeCharacter('ABC');
 }
 
@@ -181,16 +185,16 @@ const authorize = () => {
     .then(redirectToHome);
 }
 
-const parseCheckingAccount = (response) => {
+const showCheckingAccountBalance = (response) => {
   viewstate = response.body.match(/name="javax.faces.ViewState"[^>]*value="([^"]+)"/)[1];
-  checkingAccountButton = response.body.match(/SALDO C\/C<\/b><a id="([^"]+)"[^>]*frmSaldos/)[1];
+  checkingAccountButtonId = response.body.match(/SALDO C\/C<\/b><a id="([^"]+)"[^>]*frmSaldos/)[1];
 
   let form = {
     'frmSaldos': 'frmSaldos',
     'javax.faces.ViewState': viewstate,
-    'javax.faces.source': checkingAccountButton,
+    'javax.faces.source': checkingAccountButtonId,
     'javax.faces.partial.event': 'click',
-    'javax.faces.partial.execute': checkingAccountButton + ' ' + checkingAccountButton,
+    'javax.faces.partial.execute': checkingAccountButtonId + ' ' + checkingAccountButtonId,
     'javax.faces.partial.render': 'frmSaldos',
     'javax.faces.behavior.event': 'action',
     'javax.faces.partial.ajax': 'true'
@@ -207,15 +211,15 @@ const parseCheckingAccount = (response) => {
   return rp(options);
 }
 
-const parseSavingsAccount = (response) => {
-  savingsAccountButton = response.body.match(/INVESTIMENTOS<\/b><a id="([^"]+)"[^>]*frmSaldos/)[1];
+const showSavingsAccountBalance = (response) => {
+  savingsAccountButtonId = response.body.match(/INVESTIMENTOS<\/b><a id="([^"]+)"[^>]*frmSaldos/)[1];
 
   let form = {
     'frmSaldos': 'frmSaldos',
     'javax.faces.ViewState': viewstate,
-    'javax.faces.source': savingsAccountButton,
+    'javax.faces.source': savingsAccountButtonId,
     'javax.faces.partial.event': 'click',
-    'javax.faces.partial.execute': savingsAccountButton + ' ' + savingsAccountButton,
+    'javax.faces.partial.execute': savingsAccountButtonId + ' ' + savingsAccountButtonId,
     'javax.faces.partial.render': 'frmSaldos',
     'javax.faces.behavior.event': 'action',
     'javax.faces.partial.ajax': 'true'
@@ -233,29 +237,125 @@ const parseSavingsAccount = (response) => {
 }
 
 const balance = (response) => {
-  const checkingAccountBalance = parseFloat(response.body.match(/<span class="spanValores">[^\/]*R\$ ([0-9,\.]+)<\/span>/)[1].replace('.', '').replace(',', '.'));
-  const savingsAccountBalance = parseFloat(response.body.match(/totalResultados">R\$ ([0-9,\.]+)/)[1].replace('.', '').replace(',', '.'));
+  checkingAccountBalance = parseFloat(response.body.match(/<span class="spanValores">[^\/]*R\$ ([0-9,\.]+)<\/span>/)[1].replace('.', '').replace(',', '.'));
+  savingsAccountBalance = parseFloat(response.body.match(/totalResultados">R\$ ([0-9,\.]+)/)[1].replace('.', '').replace(',', '.'));
   return checkingAccountBalance + savingsAccountBalance;
 }
 
-// TODO: parse correct details page!
-const details = (response) => {
-  const checkingAccountBalance = parseFloat(response.body.match(/<span class="spanValores">[^\/]*R\$ ([0-9,\.]+)<\/span>/)[1].replace('.', '').replace(',', '.'));
-  const savingsAccountBalance = parseFloat(response.body.match(/totalResultados">R\$ ([0-9,\.]+)/)[1].replace('.', '').replace(',', '.'));
-  const details = [
-    {
+const redirectToSavingsDetails = (response) => {
+  const options = {
+    method: 'GET',
+    uri: 'https://internetbanking.intermedium.com.br/investimento/extrato.jsf',
+    jar: true,
+    resolveWithFullResponse: true
+  };
+  return rp(options);
+}
+
+const selectSimpleDetails = (response) => {
+  viewstate = response.body.match(/name="javax.faces.ViewState"[^>]*value="([^"]+)"/)[1];
+  const detailsTypeSelectBoxId = response.body.match(/selectPadrao"><select id="([^"]+)"[^>]*panelGeralExtrato/)[1];
+
+  let form = {
+    'frm': 'frm',
+    'javax.faces.ViewState': viewstate,
+    'javax.faces.source': detailsTypeSelectBoxId,
+    'javax.faces.partial.event': 'change',
+    'javax.faces.partial.execute': detailsTypeSelectBoxId + ' ' + detailsTypeSelectBoxId,
+    'javax.faces.partial.render': 'panelGeralExtrato',
+    'javax.faces.behavior.event': 'valueChange',
+    'javax.faces.partial.ajax': 'true'
+  };
+  form[detailsTypeSelectBoxId] = 'SIMPLIFICADO';
+
+  const options = {
+    method: 'POST',
+    uri: 'https://internetbanking.intermedium.com.br/investimento/extrato.jsf',
+    form: form,
+    jar: true,
+    resolveWithFullResponse: true
+  };
+
+  return rp(options);
+}
+
+const selectSimpleDetailsDate = (response) => {
+  viewButtonId = response.body.match(/<input id="([^"]+)"[^>]*Visualizar/)[1];
+
+  let form = {
+    'javax.faces.partial.ajax': 'true',
+    'javax.faces.source': 'dataFimSimplificado',
+    'javax.faces.partial.execute': 'dataFimSimplificado',
+    'javax.faces.behavior.event': 'dateSelect',
+    'javax.faces.partial.event': 'dateSelect',
+    'frm': 'frm',
+    'javax.faces.ViewState': viewstate,
+    'dataFimSimplificado_input': moment().format('DD/MM/YYYY')
+  };
+
+  const options = {
+    method: 'POST',
+    uri: 'https://internetbanking.intermedium.com.br/investimento/extrato.jsf',
+    form: form,
+    jar: true,
+    resolveWithFullResponse: true
+  };
+
+  return rp(options);
+}
+
+const submitSimpleDetailsDate = (response) => {
+  let form = {
+    'frm': 'frm',
+    'javax.faces.ViewState': viewstate,
+    'dataFimSimplificado_input': moment().format('DD/MM/YYYY'),
+    'javax.faces.source': viewButtonId,
+    'javax.faces.partial.event': 'click',
+    'javax.faces.partial.execute': viewButtonId + ' ' + viewButtonId,
+    'javax.faces.partial.render': 'panelExtratoSimplificado',
+    'javax.faces.behavior.event': 'action',
+    'javax.faces.partial.ajax': 'true'
+  };
+
+  const options = {
+    method: 'POST',
+    uri: 'https://internetbanking.intermedium.com.br/investimento/extrato.jsf',
+    form: form,
+    jar: true,
+    resolveWithFullResponse: true
+  };
+
+  return rp(options);
+}
+
+const parseSimpleDetails = (response) => {
+  return __(response.body.match(/<tr[^>]+linhaUm(.*?)<\/tr/g))
+    .map(line => {
+      const regexMatches = line.match(new RegExp('<tr[^>]+>(<td([^>]+>){2}){2}<td[^>]+>([^<]+)[^>]+><td[^>]+>([^<]+)[^>]+><td[^>]+>([^<]+)[^>]+>(<td([^>]+>){2}){6}<td[^>]+>([^<]+)'));
+
+      if (regexMatches && regexMatches.length > 8) {
+        const maturity = moment(regexMatches[3], 'DD/MM/YYYY');
+        const index = regexMatches[4];
+        const type = regexMatches[5];
+        const netValue = parseFloat(regexMatches[8].replace('.', '').replace(',', '.'));
+
+        return {
+          broker: NAME,
+          name: type + ' ' + index,
+          dailyLiquidity: maturity.isBefore(moment()),
+          date: maturity,
+          balance: netValue
+        };
+      }
+    })
+    .filter(__.identity)
+    .concat({
       broker: NAME,
       name: 'Checking account',
       dailyLiquidity: true,
       balance: checkingAccountBalance
-    }, {
-      broker: NAME,
-      name: 'Savings account',
-      dailyLiquidity: true,
-      balance: savingsAccountBalance
-    }
-  ];
-  return details.filter(d => d.balance > 0);
+    })
+    .value();
 }
 
 module.exports = {
@@ -264,15 +364,20 @@ module.exports = {
   balance: () => {
     return Promise.resolve()
       .then(authorize)
-      .then(parseCheckingAccount)
-      .then(parseSavingsAccount)
+      .then(showCheckingAccountBalance)
+      .then(showSavingsAccountBalance)
       .then(balance);
   },
   details: () => {
     return Promise.resolve()
       .then(authorize)
-      .then(parseCheckingAccount)
-      .then(parseSavingsAccount)
-      .then(details);
+      .then(showCheckingAccountBalance)
+      .then(showSavingsAccountBalance)
+      .then(balance)
+      .then(redirectToSavingsDetails)
+      .then(selectSimpleDetails)
+      .then(selectSimpleDetailsDate)
+      .then(submitSimpleDetailsDate)
+      .then(parseSimpleDetails);
   }
 }
