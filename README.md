@@ -26,7 +26,6 @@ For authentication, you can either write you credentials on `~/.balances.conf.js
   "easynvest": {
     "password": "password",
     "login": "number"
-    }
   },
   "monetus": {
     "password": "password",
