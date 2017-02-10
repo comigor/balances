@@ -15,9 +15,22 @@ $ npm install --global balances
 For authentication, you can either write you credentials on `~/.balances.conf.json` or pass a environment variable, eg:
 ```json
 {
+  "intermedium": {
+    "password": "password",
+    "login": "account_number-digit"
+  },
   "oiwarren": {
-    "password": "123456",
-    "email": "hello@example.com"
+    "password": "password",
+    "email": "email"
+  },
+  "easynvest": {
+    "password": "password",
+    "login": "number"
+    }
+  },
+  "monetus": {
+    "password": "password",
+    "email": "email"
   }
 }
 ```
