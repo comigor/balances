@@ -1,4 +1,3 @@
-#! /usr/bin/env node
 /*
 Copyright (C) 2017 Igor Borges
 
@@ -17,39 +16,71 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 'use strict';
-const common = require('./common');
 const __ = require('lodash');
-const neodoc = require('neodoc');
+const Table = require('easy-table');
+const ProgressPromise = require('progress-promise');
 const modules = require('require-all')({
   dirname: __dirname + '/modules'
 });
 
-const doc = `Usage:
-  balances [options] (${__.keys(modules).join('|')})...
-  balances [options] all
+const printProgress = (proportion) => {
+  const width = 46;
+  const loaded = Math.ceil(width * proportion);
+  const notLoaded = width - loaded;
 
-Options:
-  -d, --details  Show details.
-  -g <regex>     Regex to grep portfolio name. Only works with -d.
-  -v, --version  Show the version.
-  -h, --help     Show this help.
-`
-// -a, --auth     Just authenticate.
-const opts = neodoc.run(doc, {
-  laxPlacement: true,
-  smartOptions: true,
-  versionFlags: ['-v', '--version']
-});
+  if (proportion == 1) {
+    process.stdout.write('\r' + __.repeat(' ', width + 2) + '\r');
+    return;
+  }
 
-const selected = opts.all ?
-  __.keys(modules) :
-  __.keys(modules).filter(m => opts[m]);
+  const output = '\r[' + __.repeat('-', loaded) + __.repeat(' ', notLoaded) + ']';
+  process.stdout.write(output);
+}
 
-if (selected) {
-  // if (opts['--auth'])
-  //   modules[selected].authorize();
-  if (opts['--details'])
-    common.printDetails(selected, opts['-g']);
-  else
-    common.printBalance(selected);
+const printBalance = (brokers) => {
+  printProgress(0);
+  ProgressPromise.all(brokers.map(m => modules[m].balance()))
+    .progress(progress => printProgress(progress.proportion))
+    .then(__.sum)
+    .then(balance => {
+      return balance.toFixed(2);
+    })
+    .then(console.log);
+}
+
+const printDetails = (brokers, rex) => {
+  printProgress(0);
+  ProgressPromise.all(brokers.map(m => modules[m].details()))
+    .progress(progress => printProgress(progress.proportion))
+    .then(__.flatten)
+    .then(p => __.orderBy(p, ['dailyLiquidity', 'date', 'balance'], ['desc', 'asc', 'asc']))
+    .then(portfolio => portfolio.filter(p => new RegExp(rex, 'gi').test(p.name)))
+    .then(portfolio => {
+      return portfolio.map(p => {
+        p.date = (p.dailyLiquidity ? '-' : p.date.format('MMM/YYYY'));
+        return __.omit(p, 'dailyLiquidity');
+      })
+    })
+    .then(allDetails => {
+      return Table.print(allDetails, {
+        balance: {printer: Table.number(2)}
+      }, (t) => t.total('balance', {
+        printer: (val, width) => {
+          return val.toFixed(2);
+        }
+      }).toString());
+    })
+    .then(console.log);
+}
+
+const details = (brokers) => {
+  return Promise.all(brokers.map(m => modules[m].details()))
+    .then(__.flatten)
+    .then(p => __.orderBy(p, ['dailyLiquidity', 'date', 'balance'], ['desc', 'asc', 'asc']));
+}
+
+module.exports = {
+  printBalance: printBalance,
+  printDetails: printDetails,
+  details: details
 }
