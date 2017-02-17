@@ -16,13 +16,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 'use strict';
-const nconf = require('nconf');
-const rp = require('request-promise');
 const __ = require('lodash/fp');
 const he = require('he');
 const moment = require('moment');
-
-nconf.env('_').file({file: process.env.HOME + '/.balances.conf.json'});
+const formurlencoded = require('form-urlencoded')
+const cookiejar = require('../cookiejar');
 
 //
 // we use node v5.5 because of submitLogin() step
@@ -30,8 +28,7 @@ nconf.env('_').file({file: process.env.HOME + '/.balances.conf.json'});
 //
 
 const NAME = 'Intermedium';
-const login = nconf.get('intermedium:login');
-const password = nconf.get('intermedium:password');
+let config = {};
 let viewstate = '';
 let selectId = '';
 let virtualKeyboard = {};
@@ -40,7 +37,8 @@ let savingsAccountButtonId = '';
 let viewButtonId = '';
 let checkingAccountBalance = 0;
 let savingsAccountBalance = 0;
-
+let login = '';
+let password = '';
 
 const serialPromise = (funcs) => {
   return funcs.reduce((promise, func) => {
@@ -53,7 +51,7 @@ const typeCharacter = (char) => {
   let form = {
     'frmLogin': 'frmLogin',
     'javax.faces.ViewState': viewstate,
-    'login': login,
+    'login': config.get('intermedium:login'),
     'javax.faces.source': keyboardCode,
     'javax.faces.partial.event': 'click',
     'javax.faces.partial.execute': keyboardCode + ' ' + keyboardCode,
@@ -65,13 +63,17 @@ const typeCharacter = (char) => {
 
   const options = {
     method: 'POST',
-    uri: 'https://internetbanking.intermedium.com.br/login.jsf',
-    form: form,
-    jar: true,
-    resolveWithFullResponse: true
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'Cookie': cookiejar.cookieHeader()
+    },
+    body: formurlencoded(form),
   };
 
-  return rp(options);
+  return fetch('https://internetbanking.intermedium.com.br/login.jsf', options)
+    .then(cookiejar.mergeCookies)
+    .then(response => response.text());
 }
 
 const populateVirtualKeyboard = (body) => {
@@ -81,20 +83,29 @@ const populateVirtualKeyboard = (body) => {
     .value();
 }
 
+const getConfig = () => {
+  return config.getMultiple('intermedium:login', 'intermedium:password')
+    .then(credentials => {
+      login = credentials['intermedium:login'];
+      password = credentials['intermedium:password'];
+    })
+}
+
 const fetchLoginPage = () => {
   const options = {
     method: 'GET',
-    uri: 'https://internetbanking.intermedium.com.br/login.jsf',
-    jar: true,
-    resolveWithFullResponse: true
+    credentials: 'include',
+    headers: {'Cookie': cookiejar.cookieHeader()}
   };
-  return rp(options);
+  return fetch('https://internetbanking.intermedium.com.br/login.jsf', options)
+    .then(cookiejar.mergeCookies)
+    .then(response => response.text());
 }
 
-const typeLogin = (response) => {
-  viewstate = response.body.match(/name="javax.faces.ViewState"[^>]*value="([^"]+)"/)[1];
-  selectId = response.body.match(/<select id="([^"]+)"/)[1];
-  const submitId = response.body.match(/<input type="submit" name="([^"]+)"/)[1];
+const typeLogin = (body) => {
+  viewstate = body.match(/name="javax.faces.ViewState"[^>]*value="([^"]+)"/)[1];
+  selectId = body.match(/<select id="([^"]+)"/)[1];
+  const submitId = body.match(/<input type="submit" name="([^"]+)"/)[1];
 
   let form = {
     'frmLogin': 'frmLogin',
@@ -102,22 +113,26 @@ const typeLogin = (response) => {
     'login': login
   };
   form[selectId] = 'CLIENTE_RENDA_FIXA';
-  form[submitId] = 'Aguarde ...';
+  form[submitId] = 'Aguarde...';
 
   const options = {
     method: 'POST',
-    uri: 'https://internetbanking.intermedium.com.br/login.jsf',
-    form: form,
-    jar: true,
-    resolveWithFullResponse: true
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'Cookie': cookiejar.cookieHeader()
+    },
+    body: formurlencoded(form)
   };
 
-  return rp(options);
+  return fetch('https://internetbanking.intermedium.com.br/login.jsf', options)
+    .then(cookiejar.mergeCookies)
+    .then(response => response.text());
 }
 
-const clickName = (response) => {
-  viewstate = response.body.match(/name="javax.faces.ViewState"[^>]*value="([^"]+)"/)[1];
-  const nameId = response.body.match(/<a id="([^"]+)"[^>]*panelGeral/)[1];
+const clickName = (body) => {
+  viewstate = body.match(/name="javax.faces.ViewState"[^>]*value="([^"]+)"/)[1];
+  const nameId = body.match(/<a id="([^"]+)"[^>]*panelGeral/)[1];
 
   let form = {
     'frmLogin': 'frmLogin',
@@ -134,47 +149,53 @@ const clickName = (response) => {
 
   const options = {
     method: 'POST',
-    uri: 'https://internetbanking.intermedium.com.br/login.jsf',
-    form: form,
-    jar: true,
-    resolveWithFullResponse: true
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'Cookie': cookiejar.cookieHeader()
+    },
+    body: formurlencoded(form)
   };
 
-  return rp(options);
+  return fetch('https://internetbanking.intermedium.com.br/login.jsf', options)
+    .then(cookiejar.mergeCookies)
+    .then(response => response.text());
 }
 
-const parseVirtualKeyboard1 = (response) => {
-  virtualKeyboard = {'submit': response.body.match(/<input id="([^"]+)" type="submit"[^>]*value="Confirmar"/)[1]};
-  virtualKeyboard = __.extend(virtualKeyboard, populateVirtualKeyboard(response.body));
+const parseVirtualKeyboard1 = (body) => {
+  virtualKeyboard = {'submit': body.match(/<input id="([^"]+)" type="submit"[^>]*value="Confirmar"/)[1]};
+  virtualKeyboard = __.extend(virtualKeyboard, populateVirtualKeyboard(body));
   return typeCharacter('!?.');
 }
 
-const parseVirtualKeyboard2 = (response) => {
-  virtualKeyboard = __.extend(virtualKeyboard, populateVirtualKeyboard(response.body));
+const parseVirtualKeyboard2 = (body) => {
+  virtualKeyboard = __.extend(virtualKeyboard, populateVirtualKeyboard(body));
   return typeCharacter('ABC');
 }
 
-const typePassword = (response) => {
+const typePassword = (body) => {
   // TODO: missing uppercase password characters
   return serialPromise(Array.from(password).map(c => () => typeCharacter(c)));
 }
 
-const submitLogin = (response) => {
+const submitLogin = (body) => {
   return typeCharacter('submit');
 }
 
-const redirectToHome = (response) => {
+const redirectToHome = (body) => {
   const options = {
     method: 'GET',
-    uri: 'https://internetbanking.intermedium.com.br/comum/home.jsf',
-    jar: true,
-    resolveWithFullResponse: true
+    credentials: 'include',
+    headers: {'Cookie': cookiejar.cookieHeader()}
   };
-  return rp(options);
+  return fetch('https://internetbanking.intermedium.com.br/comum/home.jsf', options)
+    .then(cookiejar.mergeCookies)
+    .then(response => response.text());
 }
 
 const authorize = () => {
   return Promise.resolve()
+    .then(getConfig)
     .then(fetchLoginPage)
     .then(typeLogin)
     .then(clickName)
@@ -185,9 +206,9 @@ const authorize = () => {
     .then(redirectToHome);
 }
 
-const showCheckingAccountBalance = (response) => {
-  viewstate = response.body.match(/name="javax.faces.ViewState"[^>]*value="([^"]+)"/)[1];
-  checkingAccountButtonId = response.body.match(/SALDO C\/C<\/b><a id="([^"]+)"[^>]*frmSaldos/)[1];
+const showCheckingAccountBalance = (body) => {
+  viewstate = body.match(/name="javax.faces.ViewState"[^>]*value="([^"]+)"/)[1];
+  checkingAccountButtonId = body.match(/SALDO C\/C<\/b><a id="([^"]+)"[^>]*frmSaldos/)[1];
 
   let form = {
     'frmSaldos': 'frmSaldos',
@@ -202,17 +223,21 @@ const showCheckingAccountBalance = (response) => {
 
   const options = {
     method: 'POST',
-    uri: 'https://internetbanking.intermedium.com.br/comum/home.jsf',
-    form: form,
-    jar: true,
-    resolveWithFullResponse: true
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'Cookie': cookiejar.cookieHeader()
+    },
+    body: formurlencoded(form)
   };
 
-  return rp(options);
+  return fetch('https://internetbanking.intermedium.com.br/comum/home.jsf', options)
+    .then(cookiejar.mergeCookies)
+    .then(response => response.text());
 }
 
-const showSavingsAccountBalance = (response) => {
-  savingsAccountButtonId = response.body.match(/INVESTIMENTOS<\/b><a id="([^"]+)"[^>]*frmSaldos/)[1];
+const showSavingsAccountBalance = (body) => {
+  savingsAccountButtonId = body.match(/INVESTIMENTOS<\/b><a id="([^"]+)"[^>]*frmSaldos/)[1];
 
   let form = {
     'frmSaldos': 'frmSaldos',
@@ -227,34 +252,39 @@ const showSavingsAccountBalance = (response) => {
 
   const options = {
     method: 'POST',
-    uri: 'https://internetbanking.intermedium.com.br/comum/home.jsf',
-    form: form,
-    jar: true,
-    resolveWithFullResponse: true
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'Cookie': cookiejar.cookieHeader()
+    },
+    body: formurlencoded(form)
   };
 
-  return rp(options);
+  return fetch('https://internetbanking.intermedium.com.br/comum/home.jsf', options)
+    .then(cookiejar.mergeCookies)
+    .then(response => response.text());
 }
 
-const balance = (response) => {
-  checkingAccountBalance = parseFloat(response.body.match(/<span class="spanValores">[^\/]*R\$ ([0-9,\.]+)<\/span>/)[1].replace('.', '').replace(',', '.'));
-  savingsAccountBalance = parseFloat(response.body.match(/totalResultados">R\$ ([0-9,\.]+)/)[1].replace('.', '').replace(',', '.'));
+const balance = (body) => {
+  checkingAccountBalance = parseFloat(body.match(/<span class="spanValores">[^\/]*R\$ ([0-9,\.]+)<\/span>/)[1].replace('.', '').replace(',', '.'));
+  savingsAccountBalance = parseFloat(body.match(/totalResultados">R\$ ([0-9,\.]+)/)[1].replace('.', '').replace(',', '.'));
   return checkingAccountBalance + savingsAccountBalance;
 }
 
-const redirectToSavingsDetails = (response) => {
+const redirectToSavingsDetails = (body) => {
   const options = {
     method: 'GET',
-    uri: 'https://internetbanking.intermedium.com.br/investimento/extrato.jsf',
-    jar: true,
-    resolveWithFullResponse: true
+    credentials: 'include',
+    headers: {'Cookie': cookiejar.cookieHeader()}
   };
-  return rp(options);
+  return fetch('https://internetbanking.intermedium.com.br/investimento/extrato.jsf', options)
+    .then(cookiejar.mergeCookies)
+    .then(response => response.text());
 }
 
-const selectSimpleDetails = (response) => {
-  viewstate = response.body.match(/name="javax.faces.ViewState"[^>]*value="([^"]+)"/)[1];
-  const detailsTypeSelectBoxId = response.body.match(/selectPadrao"><select id="([^"]+)"[^>]*panelGeralExtrato/)[1];
+const selectSimpleDetails = (body) => {
+  viewstate = body.match(/name="javax.faces.ViewState"[^>]*value="([^"]+)"/)[1];
+  const detailsTypeSelectBoxId = body.match(/selectPadrao"><select id="([^"]+)"[^>]*panelGeralExtrato/)[1];
 
   let form = {
     'frm': 'frm',
@@ -270,17 +300,21 @@ const selectSimpleDetails = (response) => {
 
   const options = {
     method: 'POST',
-    uri: 'https://internetbanking.intermedium.com.br/investimento/extrato.jsf',
-    form: form,
-    jar: true,
-    resolveWithFullResponse: true
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'Cookie': cookiejar.cookieHeader()
+    },
+    body: formurlencoded(form)
   };
 
-  return rp(options);
+  return fetch('https://internetbanking.intermedium.com.br/investimento/extrato.jsf', options)
+    .then(cookiejar.mergeCookies)
+    .then(response => response.text());
 }
 
-const selectSimpleDetailsDate = (response) => {
-  viewButtonId = response.body.match(/<input id="([^"]+)"[^>]*Visualizar/)[1];
+const selectSimpleDetailsDate = (body) => {
+  viewButtonId = body.match(/<input id="([^"]+)"[^>]*Visualizar/)[1];
 
   let form = {
     'javax.faces.partial.ajax': 'true',
@@ -295,16 +329,20 @@ const selectSimpleDetailsDate = (response) => {
 
   const options = {
     method: 'POST',
-    uri: 'https://internetbanking.intermedium.com.br/investimento/extrato.jsf',
-    form: form,
-    jar: true,
-    resolveWithFullResponse: true
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'Cookie': cookiejar.cookieHeader()
+    },
+    body: formurlencoded(form)
   };
 
-  return rp(options);
+  return fetch('https://internetbanking.intermedium.com.br/investimento/extrato.jsf', options)
+    .then(cookiejar.mergeCookies)
+    .then(response => response.text());
 }
 
-const submitSimpleDetailsDate = (response) => {
+const submitSimpleDetailsDate = (body) => {
   let form = {
     'frm': 'frm',
     'javax.faces.ViewState': viewstate,
@@ -319,17 +357,21 @@ const submitSimpleDetailsDate = (response) => {
 
   const options = {
     method: 'POST',
-    uri: 'https://internetbanking.intermedium.com.br/investimento/extrato.jsf',
-    form: form,
-    jar: true,
-    resolveWithFullResponse: true
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'Cookie': cookiejar.cookieHeader()
+    },
+    body: formurlencoded(form)
   };
 
-  return rp(options);
+  return fetch('https://internetbanking.intermedium.com.br/investimento/extrato.jsf', options)
+    .then(cookiejar.mergeCookies)
+    .then(response => response.text());
 }
 
-const parseSimpleDetails = (response) => {
-  return __(response.body.match(/<tr[^>]+linhaUm(.*?)<\/tr/g))
+const parseSimpleDetails = (body) => {
+  return __(body.match(/<tr[^>]+linhaUm(.*?)<\/tr/g))
     .map(line => {
       const regexMatches = line.match(new RegExp('<tr[^>]+>(<td([^>]+>){2}){2}<td[^>]+>([^<]+)[^>]+><td[^>]+>([^<]+)[^>]+><td[^>]+>([^<]+)[^>]+>(<td([^>]+>){2}){6}<td[^>]+>([^<]+)'));
 
@@ -358,26 +400,30 @@ const parseSimpleDetails = (response) => {
     .value();
 }
 
-module.exports = {
-  name: NAME,
-  authorize: authorize,
-  balance: () => {
-    return Promise.resolve()
-      .then(authorize)
-      .then(showCheckingAccountBalance)
-      .then(showSavingsAccountBalance)
-      .then(balance);
-  },
-  details: () => {
-    return Promise.resolve()
-      .then(authorize)
-      .then(showCheckingAccountBalance)
-      .then(showSavingsAccountBalance)
-      .then(balance)
-      .then(redirectToSavingsDetails)
-      .then(selectSimpleDetails)
-      .then(selectSimpleDetailsDate)
-      .then(submitSimpleDetailsDate)
-      .then(parseSimpleDetails);
-  }
+module.exports = (configuration) => {
+  config = configuration;
+
+  return {
+    name: NAME,
+    authorize: authorize,
+    balance: () => {
+      return Promise.resolve()
+        .then(authorize)
+        .then(showCheckingAccountBalance)
+        .then(showSavingsAccountBalance)
+        .then(balance);
+    },
+    details: () => {
+      return Promise.resolve()
+        .then(authorize)
+        .then(showCheckingAccountBalance)
+        .then(showSavingsAccountBalance)
+        .then(balance)
+        .then(redirectToSavingsDetails)
+        .then(selectSimpleDetails)
+        .then(selectSimpleDetailsDate)
+        .then(submitSimpleDetailsDate)
+        .then(parseSimpleDetails);
+    }
+  };
 }

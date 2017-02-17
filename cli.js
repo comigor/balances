@@ -17,12 +17,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 'use strict';
-const common = require('./index');
 const __ = require('lodash');
 const neodoc = require('neodoc');
-const modules = require('require-all')({
-  dirname: __dirname + '/modules'
-});
+
+const modules = require('./modules/index');
+const config = require('./file-config');
+const common = require('./index')(config);
+const utils = require('./cli-utils');
 
 const doc = `Usage:
   balances [options] (${__.keys(modules).join('|')})...
@@ -49,7 +50,7 @@ if (selected) {
   // if (opts['--auth'])
   //   modules[selected].authorize();
   if (opts['--details'])
-    common.printDetails(selected, opts['-g']);
+    utils.printDetails(selected, opts['-g']);
   else
-    common.printBalance(selected);
+    utils.printBalance(selected);
 }

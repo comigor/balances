@@ -16,98 +16,122 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 'use strict';
-const nconf = require('nconf');
-const rp = require('request-promise');
 const moment = require('moment');
-
-nconf.env('_').file({file: process.env.HOME + '/.balances.conf.json'});
+const cookiejar = require('../cookiejar');
 
 const NAME = 'Monetus';
+let config = {};
 let _token = '';
 
 const getLoginToken = () => {
   const options = {
     method: 'GET',
-    uri: 'https://app.monetus.com.br/login',
-    json: true,
-    jar: true,
-    resolveWithFullResponse: true
+    credentials: 'include'
   };
 
-  return rp(options)
-    .then(response => {
-      _token = response.body.match(/name="_token"[^>]*value="([^"]+)"/)[1];
+  return fetch('https://app.monetus.com.br/login', options)
+    .then(cookiejar.mergeCookies)
+    .then(response => response.text())
+    .then(body => {
+      _token = body.match(/name="_token"[^>]*value="([^"]+)"/)[1];
     });
 }
 
 const login = () => {
+  config.getMultiple('monetus:login', 'monetus:password')
+    .then(credentials => {
+      return {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-type': 'application/json',
+          'Cookie': cookiejar.cookieHeader()
+        },
+        body: JSON.stringify({
+          email: credentials['monetus:login'],
+          password: credentials['monetus:password'],
+          _token: _token
+        })
+      };
+    })
+    .then(options => fetch('https://app.monetus.com.br/login', options))
+    .then(cookiejar.mergeCookies);
+}
+
+const authorize = () => {
+  return Promise.resolve()
+    .then(getLoginToken)
+    .then(login);
+}
+
+const checkLogin = () => {
   const options = {
-    method: 'POST',
-    uri: 'https://app.monetus.com.br/login',
-    headers: {'Content-type': 'application/json'},
-    body: {
-      email: nconf.get('monetus:email'),
-      password: nconf.get('monetus:password'),
-      _token: _token
-    },
-    json: true,
-    jar: true,
-    simple: false,
-    followRedirect: false,
-    resolveWithFullResponse: true
+    method: 'GET',
+    credentials: 'include'
   };
 
-  return rp(options);
+  return fetch('https://app.monetus.com.br/login', options)
+    .then(cookiejar.mergeCookies)
+    .then(response => response.text())
+    .then(body => {
+      const isLoggedIn = /JSON\.parse\('[^']+'/.test(body);
+      if (!isLoggedIn)
+        throw new Error('Not logged in');
+    });
 }
 
 const balance = () => {
-  return rp({
+  return fetch('https://app.monetus.com.br/portfolio', {
     method: 'GET',
-    uri: 'https://app.monetus.com.br/portfolio',
-    json: true,
-    jar: true,
-    resolveWithFullResponse: true
-  }).then(response => {
-    const portfolio = JSON.parse(response.body.match(/JSON\.parse\('([^']+)'/)[1]);
-    return portfolio.reduce((m, i) => m + i.value, 0);
-  });
+    credentials: 'include',
+    headers: {'Cookie': cookiejar.cookieHeader()},
+  }).then(cookiejar.mergeCookies)
+    .then(response => response.text())
+    .then(body => {
+      const portfolio = JSON.parse(body.match(/JSON\.parse\('([^']+)'/)[1]);
+      return portfolio.reduce((m, i) => m + i.value, 0);
+    });
 }
 
 const details = () => {
-  return rp({
+  return fetch('https://app.monetus.com.br/portfolio', {
     method: 'GET',
-    uri: 'https://app.monetus.com.br/portfolio',
-    json: true,
-    jar: true,
-    resolveWithFullResponse: true
-  }).then(response => {
-    return JSON.parse(response.body.match(/JSON\.parse\('([^']+)'/)[1])
-      .map(p => {
-        const date = moment(p.asset.maturity, 'YYYY-MM-DD HH:mm:ss');
-        return {
-          broker: NAME,
-          name: p.asset.name,
-          dailyLiquidity: date.isBefore(moment()),
-          date: date,
-          balance: p.value
-        };
-      });
-  });
+    credentials: 'include',
+    headers: {'Cookie': cookiejar.cookieHeader()}
+  }).then(cookiejar.mergeCookies)
+    .then(response => response.text())
+    .then(body => {
+      return JSON.parse(body.match(/JSON\.parse\('([^']+)'/)[1])
+        .map(p => {
+          const date = moment(p.asset.maturity, 'YYYY-MM-DD HH:mm:ss');
+          return {
+            broker: NAME,
+            name: p.asset.name,
+            dailyLiquidity: date.isBefore(moment()),
+            date: date,
+            balance: p.value
+          };
+        });
+    });
 }
 
-module.exports = {
-  name: NAME,
-  authorize: () => undefined,
-  balance: () => {
-    return Promise.resolve()
-      .then(getLoginToken)
-      .then(login)
-      .then(balance);
-  },
-  details: () => {
-    return Promise.resolve()
-      .then(getLoginToken)
-      .then(login)
-      .then(details);
-  }
+module.exports = (configuration) => {
+  config = configuration;
+
+  return {
+    name: NAME,
+    authorize: authorize,
+    balance: () => {
+      return Promise.resolve()
+        .then(checkLogin)
+        .catch(authorize)
+        .then(balance);
+    },
+    details: () => {
+      return Promise.resolve()
+        .then(checkLogin)
+        .catch(authorize)
+        .then(details);
+    }
+  };
 }

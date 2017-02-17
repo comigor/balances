@@ -16,24 +16,23 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 'use strict';
-global.fetch = global.fetch || require('isomorphic-fetch');
 const __ = require('lodash');
 
-const modules = require('./modules/index');
-let config = {};
+let cookies = {};
 
-const funOnEachModule = (brokers, fun) => {
-  return brokers.map(m => modules[m]).filter(__.identity).map(m => m(config)[fun]())
-}
+module.exports = {
+  mergeCookies: (response) => {
+    const cookieHeaders = ((response.headers || {})._headers || {})['set-cookie'] || [];
+    cookieHeaders
+      .map(cookie => cookie.split(';')[0])
+      .forEach(cookie => {
+        const c = cookie.split('=');
+        cookies[c[0]] = c[1];
+      });
+    return response;
+  },
 
-const details = (brokers) => {
-  return Promise.all(funOnEachModule(brokers, 'details')).then(__.flatten);
-}
-
-module.exports = (configuration) => {
-  config = configuration;
-  return {
-    details: details,
-    funOnEachModule: funOnEachModule,
-  };
+  cookieHeader: () => {
+    return __.toPairs(cookies).map(c => c.join('=')).join('; ');
+  }
 }
