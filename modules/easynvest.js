@@ -23,39 +23,39 @@ const NAME = 'Easynvest';
 let config = {};
 
 const authorize = () => {
-  const options = {
-    method: 'POST',
-    credentials: 'include',
-    headers: {'Content-type': 'application/json'},
-    body: JSON.stringify({
-      login: config.get('easynvest:login'),
-      password: config.get('easynvest:password')
+  return config.getMultiple('easynvest:login', 'easynvest:password')
+    .then(credentials => {
+      return {
+        method: 'POST',
+        credentials: 'include',
+        headers: {'Content-type': 'application/json'},
+        body: JSON.stringify({
+          login: credentials['easynvest:login'],
+          password: credentials['easynvest:password']
+        })
+      };
     })
-  };
-
-  return fetch('https://auth.app.easynvest.com.br/v1/users/me/tokens', options)
+    .then(options => fetch('https://auth.app.easynvest.com.br/v1/users/me/tokens', options))
     .then(response => response.json())
     .then(body => {
       config.set('easynvest:auth:token', body.token);
-      config.save();
     })
     .catch(console.error);
 }
 
 const checkLogin = () => {
-  if (!config.get('easynvest:auth:token'))
-    throw new Error('Missing token');
-
-  const options = {
-    method: 'GET',
-    credentials: 'include',
-    headers: {
-      'Content-type': 'application/json',
-      'Authorization': 'Bearer ' + config.get('easynvest:auth:token')
-    }
-  };
-
-  return fetch('https://api.app.easynvest.com.br/v2/users/me/accounts/PRIVATE', options)
+  return config.get('easynvest:auth:token')
+    .then(token => {
+      return {
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+          'Content-type': 'application/json',
+          'Authorization': 'Bearer ' + token
+        }
+      };
+    })
+    .then(options => fetch('https://api.app.easynvest.com.br/v2/users/me/accounts/PRIVATE', options))
     .then(response => {
       if (response.status != 200)
         throw new Error('Login failed');
@@ -63,12 +63,16 @@ const checkLogin = () => {
 }
 
 const genericDetails = (type) => {
-  return fetch(`https://api.app.easynvest.com.br/v2/users/me/accounts/${type}/investments`, {
-    method: 'GET',
-    credentials: 'include',
-    headers: {'Authorization': 'Bearer ' + config.get('easynvest:auth:token')}
-  })
-  .then(response => response.status == 200 ? response.json() : undefined);
+  return config.get('easynvest:auth:token')
+    .then(token => {
+      return {
+        method: 'GET',
+        credentials: 'include',
+        headers: {'Authorization': 'Bearer ' + token}
+      };
+    })
+    .then(options => fetch(`https://api.app.easynvest.com.br/v2/users/me/accounts/${type}/investments`, options))
+    .then(response => response.status == 200 ? response.json() : undefined);
 }
 
 const balance = () => {

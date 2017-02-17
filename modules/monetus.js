@@ -38,21 +38,23 @@ const getLoginToken = () => {
 }
 
 const login = () => {
-  const options = {
-    method: 'POST',
-    credentials: 'include',
-    headers: {
-      'Content-type': 'application/json',
-      'Cookie': cookiejar.cookieHeader()
-    },
-    body: JSON.stringify({
-      email: config.get('monetus:email'),
-      password: config.get('monetus:password'),
-      _token: _token
+  config.getMultiple('monetus:login', 'monetus:password')
+    .then(credentials => {
+      return {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-type': 'application/json',
+          'Cookie': cookiejar.cookieHeader()
+        },
+        body: JSON.stringify({
+          email: credentials['monetus:login'],
+          password: credentials['monetus:password'],
+          _token: _token
+        })
+      };
     })
-  };
-
-  return fetch('https://app.monetus.com.br/login', options)
+    .then(options => fetch('https://app.monetus.com.br/login', options))
     .then(cookiejar.mergeCookies);
 }
 

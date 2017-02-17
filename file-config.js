@@ -16,24 +16,20 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 'use strict';
-global.fetch = global.fetch || require('isomorphic-fetch');
-const __ = require('lodash');
+const nconf = require('nconf');
 
-const modules = require('./modules/index');
-let config = {};
+nconf.env('_').file({file: process.env.HOME + '/.balances.conf.json'});
 
-const funOnEachModule = (brokers, fun) => {
-  return brokers.map(m => modules[m]).filter(__.identity).map(m => m(config)[fun]())
-}
-
-const details = (brokers) => {
-  return Promise.all(funOnEachModule(brokers, 'details')).then(__.flatten);
-}
-
-module.exports = (configuration) => {
-  config = configuration;
-  return {
-    details: details,
-    funOnEachModule: funOnEachModule,
-  };
-}
+module.exports = {
+  get: (path) => Promise.resolve(nconf.get(path)),
+  getMultiple: function() {
+    return Promise.resolve(Array.prototype.slice.call(arguments).reduce((memo, path) => {
+      memo[path] = nconf.get(path);
+      return memo;
+    }, {}))
+  },
+  set: (path, value) => {
+    nconf.set(path, value);
+    nconf.save();
+  }
+};

@@ -37,6 +37,8 @@ let savingsAccountButtonId = '';
 let viewButtonId = '';
 let checkingAccountBalance = 0;
 let savingsAccountBalance = 0;
+let login = '';
+let password = '';
 
 const serialPromise = (funcs) => {
   return funcs.reduce((promise, func) => {
@@ -81,6 +83,14 @@ const populateVirtualKeyboard = (body) => {
     .value();
 }
 
+const getConfig = () => {
+  return config.getMultiple('intermedium:login', 'intermedium:password')
+    .then(credentials => {
+      login = credentials['intermedium:login'];
+      password = credentials['intermedium:password'];
+    })
+}
+
 const fetchLoginPage = () => {
   const options = {
     method: 'GET',
@@ -100,7 +110,7 @@ const typeLogin = (body) => {
   let form = {
     'frmLogin': 'frmLogin',
     'javax.faces.ViewState': viewstate,
-    'login': config.get('intermedium:login')
+    'login': login
   };
   form[selectId] = 'CLIENTE_RENDA_FIXA';
   form[submitId] = 'Aguarde...';
@@ -127,7 +137,7 @@ const clickName = (body) => {
   let form = {
     'frmLogin': 'frmLogin',
     'javax.faces.ViewState': viewstate,
-    'login': config.get('intermedium:login'),
+    'login': login,
     'javax.faces.source': nameId,
     'javax.faces.partial.event': 'click',
     'javax.faces.partial.execute': nameId + ' panelGeral',
@@ -165,7 +175,7 @@ const parseVirtualKeyboard2 = (body) => {
 
 const typePassword = (body) => {
   // TODO: missing uppercase password characters
-  return serialPromise(Array.from(config.get('intermedium:password')).map(c => () => typeCharacter(c)));
+  return serialPromise(Array.from(password).map(c => () => typeCharacter(c)));
 }
 
 const submitLogin = (body) => {
@@ -185,6 +195,7 @@ const redirectToHome = (body) => {
 
 const authorize = () => {
   return Promise.resolve()
+    .then(getConfig)
     .then(fetchLoginPage)
     .then(typeLogin)
     .then(clickName)

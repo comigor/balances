@@ -20,35 +20,35 @@ const NAME = 'OiWarren';
 let config = {};
 
 const authorize = () => {
-  const options = {
-    method: 'POST',
-    credentials: 'include',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({
-      email: config.get('oiwarren:email'),
-      password: config.get('oiwarren:password')
+  return config.getMultiple('oiwarren:login', 'oiwarren:password')
+    .then(credentials => {
+      return {
+        method: 'POST',
+        credentials: 'include',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          email: credentials['oiwarren:login'],
+          password: credentials['oiwarren:password']
+        })
+      };
     })
-  };
-
-  return fetch('https://api.oiwarren.com/api/v2/account/login', options)
+    .then(options => fetch('https://api.oiwarren.com/api/v2/account/login', options))
     .then(response => response.json())
     .then(body => {
       config.set('oiwarren:auth:accessToken', body.accessToken);
-      config.save();
     });
 }
 
 const checkLogin = () => {
-  if (!config.get('oiwarren:auth:accessToken'))
-    throw new Error('Missing token');
-
-  const options = {
-    method: 'GET',
-    credentials: 'include',
-    headers: {'Access-Token': config.get('oiwarren:auth:accessToken')}
-  };
-
-  return fetch('https://api.oiwarren.com/api/v2/account/me', options)
+  return config.get('oiwarren:auth:accessToken')
+    .then(token => {
+      return {
+        method: 'GET',
+        credentials: 'include',
+        headers: {'Access-Token': token}
+      };
+    })
+    .then(options => fetch('https://api.oiwarren.com/api/v2/account/me', options))
     .then(response => {
       if (response.status != 200)
         throw new Error('Login failed');
@@ -56,32 +56,42 @@ const checkLogin = () => {
 }
 
 const balance = () => {
-  return fetch('https://api.oiwarren.com/api/v2/portfolios/mine', {
-    method: 'GET',
-    credentials: 'include',
-    headers: {'Access-Token': config.get('oiwarren:auth:accessToken')}
-  }).then(response => response.json())
+  return config.get('oiwarren:auth:accessToken')
+    .then(token => {
+      return {
+        method: 'GET',
+        credentials: 'include',
+        headers: {'Access-Token': token}
+      };
+    })
+    .then(options => fetch('https://api.oiwarren.com/api/v2/portfolios/mine', options))
+    .then(response => response.json())
     .then(body => {
-    return body.portfolios.reduce((m, i) => m + i.totalBalance, 0);
-  });
+      return body.portfolios.reduce((m, i) => m + i.totalBalance, 0);
+    });
 }
 
 const details = () => {
-  return fetch('https://api.oiwarren.com/api/v2/portfolios/mine', {
-    method: 'GET',
-    credentials: 'include',
-    headers: {'Access-Token': config.get('oiwarren:auth:accessToken')}
-  }).then(response => response.json())
-    .then(body => {
-    return body.portfolios.map(p => {
+  return config.get('oiwarren:auth:accessToken')
+    .then(token => {
       return {
-        broker: NAME,
-        name: p.name,
-        dailyLiquidity: true,
-        balance: p.totalBalance
+        method: 'GET',
+        credentials: 'include',
+        headers: {'Access-Token': token}
       };
+    })
+    .then(options => fetch('https://api.oiwarren.com/api/v2/portfolios/mine', options))
+    .then(response => response.json())
+    .then(body => {
+      return body.portfolios.map(p => {
+        return {
+          broker: NAME,
+          name: p.name,
+          dailyLiquidity: true,
+          balance: p.totalBalance
+        };
+      });
     });
-  });
 }
 
 module.exports = (configuration) => {
