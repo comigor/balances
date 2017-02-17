@@ -58,8 +58,8 @@ const login = () => {
 
 const authorize = () => {
   return Promise.resolve()
-    .then(checkLogin)
-    .then(getLoginToken);
+    .then(getLoginToken)
+    .then(login);
 }
 
 const checkLogin = () => {
@@ -72,7 +72,7 @@ const checkLogin = () => {
     .then(cookiejar.mergeCookies)
     .then(response => response.text())
     .then(body => {
-      const isLoggedIn = /JSON\.parse\(/.test(body);
+      const isLoggedIn = /JSON\.parse\('[^']+'/.test(body);
       if (!isLoggedIn)
         throw new Error('Not logged in');
     });
