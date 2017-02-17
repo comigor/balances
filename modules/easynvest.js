@@ -17,68 +17,58 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 'use strict';
 const __ = require('lodash');
-const nconf = require('nconf');
-const rp = require('request-promise');
 const moment = require('moment');
 
-nconf.env('_').file({file: process.env.HOME + '/.balances.conf.json'});
-
 const NAME = 'Easynvest';
+let config = {};
 
 const authorize = () => {
   const options = {
     method: 'POST',
-    uri: 'https://auth.app.easynvest.com.br/v1/users/me/tokens',
+    credentials: 'include',
     headers: {'Content-type': 'application/json'},
-    body: {
-      login: nconf.get('easynvest:login'),
-      password: nconf.get('easynvest:password')
-    },
-    json: true,
-    resolveWithFullResponse: true
+    body: JSON.stringify({
+      login: config.get('easynvest:login'),
+      password: config.get('easynvest:password')
+    })
   };
 
-  return rp(options)
-    .then(response => {
-      nconf.set('easynvest:auth:token', response.body.token);
-      nconf.save();
+  return fetch('https://auth.app.easynvest.com.br/v1/users/me/tokens', options)
+    .then(response => response.json())
+    .then(body => {
+      config.set('easynvest:auth:token', body.token);
+      config.save();
     })
     .catch(console.error);
 }
 
 const checkLogin = () => {
-  if (!nconf.get('easynvest:auth:token'))
+  if (!config.get('easynvest:auth:token'))
     throw new Error('Missing token');
 
   const options = {
     method: 'GET',
-    uri: 'https://api.app.easynvest.com.br/v2/users/me/accounts/PRIVATE',
+    credentials: 'include',
     headers: {
       'Content-type': 'application/json',
-      'Authorization': 'Bearer ' + nconf.get('easynvest:auth:token')
-    },
-    json: true,
-    resolveWithFullResponse: true
+      'Authorization': 'Bearer ' + config.get('easynvest:auth:token')
+    }
   };
 
-  return rp(options).then(response => {
-    if (response.statusCode != 200)
-      throw new Error('Login failed');
-  });
+  return fetch('https://api.app.easynvest.com.br/v2/users/me/accounts/PRIVATE', options)
+    .then(response => {
+      if (response.status != 200)
+        throw new Error('Login failed');
+    });
 }
 
 const genericDetails = (type) => {
-  return rp({
+  return fetch(`https://api.app.easynvest.com.br/v2/users/me/accounts/${type}/investments`, {
     method: 'GET',
-    uri: `https://api.app.easynvest.com.br/v2/users/me/accounts/${type}/investments`,
-    headers: {
-      'Authorization': 'Bearer ' + nconf.get('easynvest:auth:token')
-    },
-    json: true,
-    simple: false,
-    resolveWithFullResponse: true
+    credentials: 'include',
+    headers: {'Authorization': 'Bearer ' + config.get('easynvest:auth:token')}
   })
-  .then(response => response.statusCode == 200 ? response.body : undefined);
+  .then(response => response.status == 200 ? response.json() : undefined);
 }
 
 const balance = () => {
@@ -120,19 +110,23 @@ const details = () => {
                         .value());
 }
 
-module.exports = {
-  name: NAME,
-  authorize: authorize,
-  balance: () => {
-    return Promise.resolve()
-      .then(checkLogin)
-      .catch(authorize)
-      .then(balance);
-  },
-  details: () => {
-    return Promise.resolve()
-      .then(checkLogin)
-      .catch(authorize)
-      .then(details);
-  }
+module.exports = (configuration) => {
+  config = configuration;
+
+  return {
+    name: NAME,
+    authorize: authorize,
+    balance: () => {
+      return Promise.resolve()
+        .then(checkLogin)
+        .catch(authorize)
+        .then(balance);
+    },
+    details: () => {
+      return Promise.resolve()
+        .then(checkLogin)
+        .catch(authorize)
+        .then(details);
+    }
+  };
 }

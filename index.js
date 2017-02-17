@@ -16,71 +16,84 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 'use strict';
+global.fetch = global.fetch || require('isomorphic-fetch');
 const __ = require('lodash');
-const Table = require('easy-table');
-const ProgressPromise = require('progress-promise');
-const modules = require('require-all')({
-  dirname: __dirname + '/modules'
-});
 
-const printProgress = (proportion) => {
-  const width = 46;
-  const loaded = Math.ceil(width * proportion);
-  const notLoaded = width - loaded;
+// const Table = require('easy-table');
+// const ProgressPromise = require('progress-promise');
 
-  if (proportion == 1) {
-    process.stdout.write('\r' + __.repeat(' ', width + 2) + '\r');
-    return;
-  }
+// const printProgress = (proportion) => {
+//   const width = 46;
+//   const loaded = Math.ceil(width * proportion);
+//   const notLoaded = width - loaded;
+//
+//   if (proportion == 1) {
+//     process.stdout.write('\r' + __.repeat(' ', width + 2) + '\r');
+//     return;
+//   }
+//
+//   const output = '\r[' + __.repeat('-', loaded) + __.repeat(' ', notLoaded) + ']';
+//   process.stdout.write(output);
+// }
+//
+// const printBalance = (brokers) => {
+//   printProgress(0);
+//   ProgressPromise.all(brokers.map(m => modules[m].balance()))
+//     .progress(progress => printProgress(progress.proportion))
+//     .then(__.sum)
+//     .then(balance => {
+//       return balance.toFixed(2);
+//     })
+//     .then(console.log);
+// }
+//
+// const printDetails = (brokers, rex) => {
+//   printProgress(0);
+//   ProgressPromise.all(brokers.map(m => modules[m].details()))
+//     .progress(progress => printProgress(progress.proportion))
+//     .then(__.flatten)
+//     .then(p => __.orderBy(p, ['dailyLiquidity', 'date', 'balance'], ['desc', 'asc', 'asc']))
+//     .then(portfolio => portfolio.filter(p => new RegExp(rex, 'gi').test(p.name)))
+//     .then(portfolio => {
+//       return portfolio.map(p => {
+//         p.date = (p.dailyLiquidity ? '-' : p.date.format('MMM/YYYY'));
+//         return __.omit(p, 'dailyLiquidity');
+//       })
+//     })
+//     .then(allDetails => {
+//       return Table.print(allDetails, {
+//         balance: {printer: Table.number(2)}
+//       }, (t) => t.total('balance', {
+//         printer: (val, width) => {
+//           return val.toFixed(2);
+//         }
+//       }).toString());
+//     })
+//     .then(console.log);
+// }
 
-  const output = '\r[' + __.repeat('-', loaded) + __.repeat(' ', notLoaded) + ']';
-  process.stdout.write(output);
-}
+// const nconf = require('nconf');
+// nconf.env('_').file({file: process.env.HOME + '/.balances.conf.json'});
 
-const printBalance = (brokers) => {
-  printProgress(0);
-  ProgressPromise.all(brokers.map(m => modules[m].balance()))
-    .progress(progress => printProgress(progress.proportion))
-    .then(__.sum)
-    .then(balance => {
-      return balance.toFixed(2);
-    })
-    .then(console.log);
-}
+let dict = {
+};
+const mockNconf = {
+  get: (path) => dict[path],
+  set: (path, value) => dict[path] = value,
+  save: () => {},
+};
 
-const printDetails = (brokers, rex) => {
-  printProgress(0);
-  ProgressPromise.all(brokers.map(m => modules[m].details()))
-    .progress(progress => printProgress(progress.proportion))
-    .then(__.flatten)
-    .then(p => __.orderBy(p, ['dailyLiquidity', 'date', 'balance'], ['desc', 'asc', 'asc']))
-    .then(portfolio => portfolio.filter(p => new RegExp(rex, 'gi').test(p.name)))
-    .then(portfolio => {
-      return portfolio.map(p => {
-        p.date = (p.dailyLiquidity ? '-' : p.date.format('MMM/YYYY'));
-        return __.omit(p, 'dailyLiquidity');
-      })
-    })
-    .then(allDetails => {
-      return Table.print(allDetails, {
-        balance: {printer: Table.number(2)}
-      }, (t) => t.total('balance', {
-        printer: (val, width) => {
-          return val.toFixed(2);
-        }
-      }).toString());
-    })
-    .then(console.log);
-}
+// -------------------------------------------------------------
+
+const modules = require('./modules/index');
 
 const details = (brokers) => {
-  return Promise.all(brokers.map(m => modules[m].details()))
-    .then(__.flatten)
-    .then(p => __.orderBy(p, ['dailyLiquidity', 'date', 'balance'], ['desc', 'asc', 'asc']));
+  return Promise.all(brokers.map(m => modules[m]).filter(__.identity).map(m => m(mockNconf).details()))
+    .then(__.flatten);
 }
 
 module.exports = {
-  printBalance: printBalance,
-  printDetails: printDetails,
+  // printBalance: printBalance,
+  // printDetails: printDetails,
   details: details
 }

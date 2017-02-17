@@ -17,39 +17,39 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 'use strict';
-const common = require('./index');
-const __ = require('lodash');
-const neodoc = require('neodoc');
-const modules = require('require-all')({
-  dirname: __dirname + '/modules'
-});
+// const common = require('./index');
+// const __ = require('lodash');
+// const neodoc = require('neodoc');
+// const modules = require('require-all')({
+//   dirname: __dirname + '/modules'
+// });
 
-const doc = `Usage:
-  balances [options] (${__.keys(modules).join('|')})...
-  balances [options] all
+// const doc = `Usage:
+//   balances [options] (${__.keys(modules).join('|')})...
+//   balances [options] all
 
-Options:
-  -d, --details  Show details.
-  -g <regex>     Regex to grep portfolio name. Only works with -d.
-  -v, --version  Show the version.
-  -h, --help     Show this help.
-`
-// -a, --auth     Just authenticate.
-const opts = neodoc.run(doc, {
-  laxPlacement: true,
-  smartOptions: true,
-  versionFlags: ['-v', '--version']
-});
+// Options:
+//   -d, --details  Show details.
+//   -g <regex>     Regex to grep portfolio name. Only works with -d.
+//   -v, --version  Show the version.
+//   -h, --help     Show this help.
+// `
+// // -a, --auth     Just authenticate.
+// const opts = neodoc.run(doc, {
+//   laxPlacement: true,
+//   smartOptions: true,
+//   versionFlags: ['-v', '--version']
+// });
 
-const selected = opts.all ?
-  __.keys(modules) :
-  __.keys(modules).filter(m => opts[m]);
+// const selected = opts.all ?
+//   __.keys(modules) :
+//   __.keys(modules).filter(m => opts[m]);
 
-if (selected) {
-  // if (opts['--auth'])
-  //   modules[selected].authorize();
-  if (opts['--details'])
-    common.printDetails(selected, opts['-g']);
-  else
-    common.printBalance(selected);
-}
+// if (selected) {
+//   // if (opts['--auth'])
+//   //   modules[selected].authorize();
+//   if (opts['--details'])
+//     common.printDetails(selected, opts['-g']);
+//   else
+//     common.printBalance(selected);
+// }

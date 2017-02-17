@@ -2,7 +2,7 @@
   "name": "balances",
   "version": "0.4.0",
   "description": "Your checking and savings accounts balances on banks and brokers",
-  "main": "./cli.js",
+  "main": "./index.js",
   "bin": "./cli.js",
   "scripts": {
     "start": "node ./cli.js",
@@ -16,14 +16,12 @@
   "license": "GPL-3.0",
   "dependencies": {
     "easy-table": "^1.0.0",
+    "form-urlencoded": "^1.5.0",
     "he": "^1.1.0",
+    "isomorphic-fetch": "^2.2.1",
     "lodash": "^4.17.4",
     "moment": "^2.17.1",
-    "nconf": "^0.8.4",
     "neodoc": "^1.3.1",
-    "progress-promise": "0.0.6",
-    "request": "^2.79.0",
-    "request-promise": "^4.1.1",
-    "require-all": "^2.1.0"
+    "progress-promise": "0.0.6"
   }
 }
