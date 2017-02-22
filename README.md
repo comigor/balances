@@ -21,7 +21,7 @@ For authentication, you can either write you credentials on `~/.balances.conf.js
   },
   "oiwarren": {
     "password": "password",
-    "email": "email"
+    "login": "email"
   },
   "easynvest": {
     "password": "password",
@@ -29,7 +29,7 @@ For authentication, you can either write you credentials on `~/.balances.conf.js
   },
   "monetus": {
     "password": "password",
-    "email": "email"
+    "login": "email"
   }
 }
 ```
